@@ -1,0 +1,918 @@
+{
+    "projectId": "67198dbd00277f568222",
+    "projectName": "ECOESMARA",
+    "settings": {
+        "services": {
+            "account": true,
+            "avatars": true,
+            "databases": true,
+            "locale": true,
+            "health": true,
+            "storage": true,
+            "teams": true,
+            "users": true,
+            "functions": true,
+            "graphql": true,
+            "messaging": true
+        },
+        "auth": {
+            "methods": {
+                "jwt": true,
+                "phone": true,
+                "invites": true,
+                "anonymous": true,
+                "email-otp": true,
+                "magic-url": true,
+                "email-password": true
+            },
+            "security": {
+                "duration": 31536000,
+                "limit": 0,
+                "sessionsLimit": 10,
+                "passwordHistory": 0,
+                "passwordDictionary": false,
+                "personalDataCheck": false,
+                "sessionAlerts": false,
+                "mockNumbers": []
+            }
+        }
+    },
+    "functions": [
+        {
+            "$id": "676fc380002e66f4afbe",
+            "execute": [
+                "any"
+            ],
+            "name": "Certificate function",
+            "enabled": true,
+            "logging": true,
+            "runtime": "node-22",
+            "scopes": [
+                "users.read"
+            ],
+            "events": [],
+            "schedule": "",
+            "timeout": 15,
+            "entrypoint": "src/main.js",
+            "commands": "npm install",
+            "path": "functions/Certificate function"
+        }
+    ],
+    "databases": [
+        {
+            "$id": "671990030023bc46a07a",
+            "name": "ecoesmaraDB",
+            "enabled": true
+        }
+    ],
+    "collections": [
+        {
+            "$id": "6719901a0029b981b666",
+            "$permissions": [
+                "create(\"any\")",
+                "read(\"any\")",
+                "update(\"any\")",
+                "delete(\"any\")",
+                "create(\"users\")",
+                "read(\"users\")",
+                "update(\"users\")",
+                "delete(\"users\")"
+            ],
+            "databaseId": "671990030023bc46a07a",
+            "name": "Users",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "contact",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 2200,
+                    "default": null
+                },
+                {
+                    "key": "name",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 2200,
+                    "default": null
+                },
+                {
+                    "key": "surname",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 2200,
+                    "default": null
+                },
+                {
+                    "key": "email",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 2200,
+                    "default": null
+                },
+                {
+                    "key": "avatar",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 2200,
+                    "default": null
+                },
+                {
+                    "key": "Id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 2200,
+                    "default": null
+                },
+                {
+                    "key": "role",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 20,
+                    "default": null
+                },
+                {
+                    "key": "points",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "min": 0,
+                    "max": 10000,
+                    "default": 10
+                },
+                {
+                    "key": "followers",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "min": 0,
+                    "max": 1000000,
+                    "default": 0
+                },
+                {
+                    "key": "following",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "min": 0,
+                    "max": 1000000,
+                    "default": 0
+                },
+                {
+                    "key": "password",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 200,
+                    "default": null
+                },
+                {
+                    "key": "bio",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 2000,
+                    "default": null
+                }
+            ],
+            "indexes": []
+        },
+        {
+            "$id": "6719902e002d4501a460",
+            "$permissions": [
+                "create(\"users\")",
+                "read(\"users\")",
+                "update(\"users\")",
+                "delete(\"users\")"
+            ],
+            "databaseId": "671990030023bc46a07a",
+            "name": "Videos",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "title",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 2200,
+                    "default": null
+                },
+                {
+                    "key": "id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 2200,
+                    "default": null
+                },
+                {
+                    "key": "description",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 2200,
+                    "default": null
+                },
+                {
+                    "key": "thumbnail",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "format": "url",
+                    "default": null
+                },
+                {
+                    "key": "video",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "format": "url",
+                    "default": null
+                },
+                {
+                    "key": "creator",
+                    "type": "relationship",
+                    "required": false,
+                    "array": false,
+                    "relatedCollection": "6719901a0029b981b666",
+                    "relationType": "manyToOne",
+                    "twoWay": false,
+                    "twoWayKey": "671991d60011db7cb2d2",
+                    "onDelete": "setNull",
+                    "side": "parent"
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "search_by_title",
+                    "type": "fulltext",
+                    "status": "available",
+                    "attributes": [
+                        "title"
+                    ],
+                    "orders": [
+                        "ASC"
+                    ]
+                }
+            ]
+        },
+        {
+            "$id": "673353f6001566d5f853",
+            "$permissions": [
+                "read(\"any\")"
+            ],
+            "databaseId": "671990030023bc46a07a",
+            "name": "UserCourses",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "totalLessons",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 3000,
+                    "default": null
+                },
+                {
+                    "key": "completedLessons",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 3000,
+                    "default": null
+                },
+                {
+                    "key": "user",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                },
+                {
+                    "key": "course",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                },
+                {
+                    "key": "isCompleted",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": false
+                }
+            ],
+            "indexes": []
+        },
+        {
+            "$id": "67335b4f000fd5559638",
+            "$permissions": [
+                "read(\"any\")",
+                "create(\"user:6735e04e000744383fb5\")",
+                "update(\"user:6735e04e000744383fb5\")",
+                "delete(\"user:6735e04e000744383fb5\")"
+            ],
+            "databaseId": "671990030023bc46a07a",
+            "name": "Courses",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "title",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 200,
+                    "default": null
+                },
+                {
+                    "key": "description",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 3000,
+                    "default": null
+                },
+                {
+                    "key": "lessons",
+                    "type": "integer",
+                    "required": true,
+                    "array": false,
+                    "min": 0,
+                    "max": 15,
+                    "default": null
+                },
+                {
+                    "key": "format",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "elements": [
+                        "video",
+                        "audio"
+                    ],
+                    "format": "enum",
+                    "default": null
+                },
+                {
+                    "key": "thumbnail",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "format": "url",
+                    "default": null
+                },
+                {
+                    "key": "instructor",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 50,
+                    "default": null
+                },
+                {
+                    "key": "Id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                },
+                {
+                    "key": "duration",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                },
+                {
+                    "key": "isPaid",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": false
+                },
+                {
+                    "key": "date",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "format": "",
+                    "default": "2024-11-18T12:00:09.767"
+                },
+                {
+                    "key": "category",
+                    "type": "relationship",
+                    "required": false,
+                    "array": false,
+                    "relatedCollection": "6735ec7c0012c30f62be",
+                    "relationType": "manyToOne",
+                    "twoWay": true,
+                    "twoWayKey": "courses",
+                    "onDelete": "restrict",
+                    "side": "parent"
+                }
+            ],
+            "indexes": []
+        },
+        {
+            "$id": "67335bbe00123573e330",
+            "$permissions": [
+                "read(\"any\")"
+            ],
+            "databaseId": "671990030023bc46a07a",
+            "name": "Lessons",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "title",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 200,
+                    "default": null
+                },
+                {
+                    "key": "url",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "format": "url",
+                    "default": null
+                },
+                {
+                    "key": "duration",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 400,
+                    "default": null
+                },
+                {
+                    "key": "format",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "elements": [
+                        "audio",
+                        "video"
+                    ],
+                    "format": "enum",
+                    "default": null
+                },
+                {
+                    "key": "courseId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                }
+            ],
+            "indexes": []
+        },
+        {
+            "$id": "6735ec7c0012c30f62be",
+            "$permissions": [
+                "create(\"any\")",
+                "read(\"any\")",
+                "update(\"any\")",
+                "delete(\"any\")"
+            ],
+            "databaseId": "671990030023bc46a07a",
+            "name": "category",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "name",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                },
+                {
+                    "key": "courses",
+                    "type": "relationship",
+                    "required": false,
+                    "array": false,
+                    "relatedCollection": "67335b4f000fd5559638",
+                    "relationType": "manyToOne",
+                    "twoWay": true,
+                    "twoWayKey": "category",
+                    "onDelete": "restrict",
+                    "side": "child"
+                }
+            ],
+            "indexes": []
+        },
+        {
+            "$id": "6735f193002676cd0e7f",
+            "$permissions": [
+                "create(\"users\")",
+                "read(\"users\")",
+                "update(\"users\")",
+                "delete(\"users\")"
+            ],
+            "databaseId": "671990030023bc46a07a",
+            "name": "Posts",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "title",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 200,
+                    "default": null
+                },
+                {
+                    "key": "user",
+                    "type": "relationship",
+                    "required": false,
+                    "array": false,
+                    "relatedCollection": "6719901a0029b981b666",
+                    "relationType": "manyToOne",
+                    "twoWay": false,
+                    "twoWayKey": "6735f259002d068b3b5f",
+                    "onDelete": "cascade",
+                    "side": "parent"
+                },
+                {
+                    "key": "description",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 4000,
+                    "default": null
+                },
+                {
+                    "key": "image",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "format": "url",
+                    "default": null
+                },
+                {
+                    "key": "comments",
+                    "type": "integer",
+                    "required": false,
+                    "array": false,
+                    "min": 0,
+                    "max": 1000000,
+                    "default": null
+                },
+                {
+                    "key": "tags",
+                    "type": "string",
+                    "required": false,
+                    "array": true,
+                    "size": 300,
+                    "default": null
+                }
+            ],
+            "indexes": [
+                {
+                    "key": "index_1",
+                    "type": "fulltext",
+                    "status": "available",
+                    "attributes": [
+                        "title"
+                    ],
+                    "orders": [
+                        "DESC"
+                    ]
+                }
+            ]
+        },
+        {
+            "$id": "673d0849000dddc44721",
+            "$permissions": [
+                "create(\"users\")",
+                "read(\"users\")",
+                "update(\"users\")",
+                "delete(\"users\")"
+            ],
+            "databaseId": "671990030023bc46a07a",
+            "name": "Coments",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "users",
+                    "type": "relationship",
+                    "required": false,
+                    "array": false,
+                    "relatedCollection": "6719901a0029b981b666",
+                    "relationType": "manyToOne",
+                    "twoWay": false,
+                    "twoWayKey": "673d08ac000ce196a9b5",
+                    "onDelete": "restrict",
+                    "side": "parent"
+                },
+                {
+                    "key": "comment",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 4000,
+                    "default": null
+                },
+                {
+                    "key": "postId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                },
+                {
+                    "key": "parentId",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                }
+            ],
+            "indexes": []
+        },
+        {
+            "$id": "6749a841002bba848436",
+            "$permissions": [
+                "create(\"users\")",
+                "read(\"users\")",
+                "update(\"users\")",
+                "delete(\"users\")"
+            ],
+            "databaseId": "671990030023bc46a07a",
+            "name": "Notifications",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "message",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                },
+                {
+                    "key": "userId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                },
+                {
+                    "key": "type",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 50,
+                    "default": null
+                },
+                {
+                    "key": "isRead",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": false
+                },
+                {
+                    "key": "readAt",
+                    "type": "datetime",
+                    "required": false,
+                    "array": false,
+                    "format": "",
+                    "default": null
+                },
+                {
+                    "key": "id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                },
+                {
+                    "key": "icon",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 50,
+                    "default": null
+                },
+                {
+                    "key": "postId",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                },
+                {
+                    "key": "commentId",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                }
+            ],
+            "indexes": []
+        },
+        {
+            "$id": "674ed0910011543c47b8",
+            "$permissions": [
+                "create(\"users\")",
+                "read(\"users\")",
+                "update(\"users\")",
+                "delete(\"users\")"
+            ],
+            "databaseId": "671990030023bc46a07a",
+            "name": "follows",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "followerId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                },
+                {
+                    "key": "followedId",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                },
+                {
+                    "key": "id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                }
+            ],
+            "indexes": []
+        },
+        {
+            "$id": "675ff98a0034a054c900",
+            "$permissions": [
+                "create(\"users\")",
+                "read(\"users\")",
+                "update(\"users\")",
+                "delete(\"users\")"
+            ],
+            "databaseId": "671990030023bc46a07a",
+            "name": "conversations",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "id",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 100,
+                    "default": null
+                },
+                {
+                    "key": "participants",
+                    "type": "string",
+                    "required": false,
+                    "array": true,
+                    "size": 100,
+                    "default": null
+                },
+                {
+                    "key": "lastMessage",
+                    "type": "string",
+                    "required": false,
+                    "array": false,
+                    "size": 3000,
+                    "default": null
+                },
+                {
+                    "key": "isGroup",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": false
+                }
+            ],
+            "indexes": []
+        },
+        {
+            "$id": "675ffbe600292a61dc98",
+            "$permissions": [
+                "create(\"users\")",
+                "read(\"users\")",
+                "update(\"users\")",
+                "delete(\"users\")"
+            ],
+            "databaseId": "671990030023bc46a07a",
+            "name": "messages",
+            "enabled": true,
+            "documentSecurity": false,
+            "attributes": [
+                {
+                    "key": "content",
+                    "type": "string",
+                    "required": true,
+                    "array": false,
+                    "size": 4000,
+                    "default": null
+                },
+                {
+                    "key": "isRead",
+                    "type": "boolean",
+                    "required": false,
+                    "array": false,
+                    "default": false
+                },
+                {
+                    "key": "senderId",
+                    "type": "relationship",
+                    "required": false,
+                    "array": false,
+                    "relatedCollection": "6719901a0029b981b666",
+                    "relationType": "manyToOne",
+                    "twoWay": false,
+                    "twoWayKey": "67600c85003990559fa5",
+                    "onDelete": "cascade",
+                    "side": "parent"
+                },
+                {
+                    "key": "conversationId",
+                    "type": "relationship",
+                    "required": false,
+                    "array": false,
+                    "relatedCollection": "675ff98a0034a054c900",
+                    "relationType": "manyToOne",
+                    "twoWay": false,
+                    "twoWayKey": "67601eff0022d7ef04e9",
+                    "onDelete": "cascade",
+                    "side": "parent"
+                }
+            ],
+            "indexes": []
+        }
+    ],
+    "buckets": [
+        {
+            "$id": "671992c80019376d25f1",
+            "$permissions": [
+                "create(\"users\")",
+                "read(\"users\")",
+                "update(\"users\")",
+                "delete(\"users\")",
+                "read(\"guests\")",
+                "create(\"any\")",
+                "read(\"any\")",
+                "update(\"any\")",
+                "delete(\"any\")"
+            ],
+            "fileSecurity": false,
+            "name": "Files",
+            "enabled": true,
+            "maximumFileSize": 50000000,
+            "allowedFileExtensions": [
+                "jpg",
+                "png",
+                "mp4",
+                "jpeg",
+                "pdf"
+            ],
+            "compression": "none",
+            "encryption": true,
+            "antivirus": true
+        }
+    ]
+}

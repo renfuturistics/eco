@@ -1,0 +1,45 @@
+{
+  "expo": {
+    "name": "ecoesmara",
+    "slug": "ecoesmara",
+    "scheme": "ecoesmara",
+    "version": "1.0.0",
+    "description": "ecoesmara description",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.zambia.ecoesmara",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "audio"
+        ]
+      }
+    },
+    "android": {
+      "package": "com.zambia.ecoesmara",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/logo.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "83785673-5745-4de7-ae64-76d3a7cbc0c9"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font"
+    ]
+  }
+}
