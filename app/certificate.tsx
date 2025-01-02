@@ -67,7 +67,7 @@ const CertificateScreen = () => {
           {isLoading ? (
             <ActivityIndicator
               size="large"
-              color="#4A90E2"
+              color="#FF9001" 
               className="w-full h-full flex justify-center items-center"
             />
           ) : (
@@ -100,7 +100,7 @@ const CertificateScreen = () => {
 
           {/* Save Button */}
           <TouchableOpacity
-            className="bg-blue-500 py-3 px-5 rounded shadow-md flex-1"
+            className="bg-secondary py-3 px-5 rounded shadow-md flex-1"
             onPress={handleSave}
           >
             <Text className="text-white font-bold text-center text-base">

@@ -134,7 +134,7 @@ const ProfilePage = () => {
     // Show loading spinner while data is being fetched
     return (
       <View className="bg-primary" style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
+        <ActivityIndicator size="large" color="#FF9001" />
       </View>
     );
   }

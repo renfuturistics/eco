@@ -61,13 +61,13 @@ const TabsLayout = () => {
         <Tabs.Screen
           name="chat"
           options={{
-            title: "chat",
+            title: "Social",
             headerShown: false,
             tabBarIcon: ({ color, focused }) => (
               <TabIcon
                 icon={icons.bookmark}
                 color={color}
-                name="chat"
+                name="Social"
                 focused={focused}
               />
             ),
