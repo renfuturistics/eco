@@ -15,16 +15,18 @@ import Slider from "@react-native-community/slider";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 // Import the function to award points
-import { addPoints } from "../../lib/appwrite"; // Adjust the import path accordingly
+import { addPoints, handleVideoCompletion } from "../../lib/appwrite"; // Adjust the import path accordingly
 import { useGlobalContext } from "../../context/GlobalProvider";
 
 const VideoPlay = () => {
-  const { url } = useLocalSearchParams();
-
+  const params = useLocalSearchParams();
+  const url = params.url as string; // The video/audio URL
+  const courseId = params.courseId as string; // The course ID
+  const lessonId = params.lessonId as string
   const router = useRouter();
   const videoRef = useRef<Video>(null);
   const [status, setStatus] = useState<AVPlaybackStatus | null>(null);
-  const [volume, setVolume] = useState(1);
+
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
   const [controlsVisible, setControlsVisible] = useState(true);
@@ -35,14 +37,8 @@ const VideoPlay = () => {
 
   const userId = user.Id;
 
-  const handleVideoCompletion = () => {
-    addPoints(userId, 5)
-      .then((response) => {
-        console.log("Points awarded:", response);
-      })
-      .catch((error) => {
-        console.log("Error awarding points:", error);
-      });
+  const videoCompletion = () => {
+handleVideoCompletion(userId,courseId,lessonId)
   };
 
   const togglePlayback = () => {
@@ -122,9 +118,9 @@ const VideoPlay = () => {
 
   const onPlaybackStatusUpdate = (status: AVPlaybackStatus) => {
     setStatus(status);
-    console.log(status);
+
     if (status.isLoaded && status.didJustFinish) {
-      handleVideoCompletion();
+    videoCompletion()
     }
     setIsLoading(!status.isLoaded || !status.isPlaying); // Update loading state
   };

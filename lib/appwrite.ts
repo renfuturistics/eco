@@ -19,7 +19,7 @@ export const appwriteConfig = {
   videoCollectionId: "6719902e002d4501a460",
   coursesCollectionId: "67335b4f000fd5559638",
   lessonsCollectionId: "67335bbe00123573e330",
-  userProgressCollectionId: "673353f6001566d5f853",
+  userCoursesCollectionId: "673353f6001566d5f853",
   postsCollectionId: "6735f193002676cd0e7f",
   notificationCollectionId: "6749a841002bba848436",
   commentsCollectionId: "673d0849000dddc44721",
@@ -448,7 +448,7 @@ export const getUserCourses = async (userID: string) => {
     // Query the progress collection to get user-specific enrollments
     const enrollmentResponse = await databases.listDocuments(
       appwriteConfig.databaseId,
-      appwriteConfig.userProgressCollectionId,
+      appwriteConfig.userCoursesCollectionId,
       [Query.equal("user", userID)]
     );
 
@@ -494,30 +494,27 @@ export const createUserCourse = async (
     // Check if the user is already enrolled in the course
     const existingEnrollment = await databases.listDocuments(
       appwriteConfig.databaseId,
-      appwriteConfig.userProgressCollectionId,
-      [
-        Query.equal("user", userID),
-        Query.equal("course", courseID),
-      ]
+      appwriteConfig.userCoursesCollectionId,
+      [Query.equal("user", userID), Query.equal("course", courseID)]
     );
-
+    // If enrollment already exists, return it
     if (existingEnrollment.documents.length > 0) {
-      throw new Error("User is already enrolled in this course.");
+      return existingEnrollment.documents[0];
     }
 
     // Create a new document for the user's course enrollment
     const enrollment = await databases.createDocument(
       appwriteConfig.databaseId,
-      appwriteConfig.userProgressCollectionId,
+      appwriteConfig.userCoursesCollectionId,
       ID.unique(),
       {
         user: userID,
         course: courseID,
         totalLessons,
         completedLessons: 0, // Initial completed lessons set to 0
-        isCompleted: false,  // Initial course completion status set to false
-        progress: 0,         // Progress as a percentage (initially 0)
-        lastUpdated: new Date().toISOString(),
+        isCompleted: false, // Initial course completion status set to false
+
+
       }
     );
 
@@ -527,6 +524,64 @@ export const createUserCourse = async (
     throw new Error("Failed to create user course.");
   }
 };
+
+export const handleVideoCompletion = async (userId: string, courseId: string, lessonId: string) => {
+  try {
+    // Fetch the current enrollment record for the user and course
+    const enrollmentResponse = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.userCoursesCollectionId,
+      [
+        Query.equal("user", userId),
+        Query.equal("course", courseId),
+      ]
+    );
+
+    // Ensure the user is enrolled in the course
+    if (enrollmentResponse.documents.length === 0) {
+      console.log("User is not enrolled in this course.");
+      return;
+    }
+
+    const enrollment = enrollmentResponse.documents[0];
+
+    // Check if the lesson is already marked as completed
+    const completedLessons = enrollment.completedLessons || [];
+    if (completedLessons.includes(lessonId)) {
+      console.log("This lesson has already been completed.");
+      return; // Do nothing if the lesson is already completed
+    }
+
+    // Add the lesson to the completedLessons list
+    completedLessons.push(lessonId);
+
+    // Increment the completed lessons count
+    const updatedEnrollment = await databases.updateDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.userCoursesCollectionId,
+      enrollment.$id,
+      {
+        completedLessons,
+        completedLessonsCount: completedLessons.length, // Optional: you can track total completed lessons
+      }
+    );
+
+    console.log("Lesson completed:", updatedEnrollment);
+
+    // Proceed to add points (or any other logic)
+    addPoints(userId, 5)
+      .then((response) => {
+        console.log("Points awarded:", response);
+      })
+      .catch((error) => {
+        console.log("Error awarding points:", error);
+      });
+
+  } catch (error) {
+    console.error("Error handling video completion:", error);
+  }
+};
+
 export const getAllPosts = async () => {
   try {
     const response = await databases.listDocuments(

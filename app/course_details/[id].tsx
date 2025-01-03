@@ -8,25 +8,26 @@ import {
   TouchableOpacity,
   TextInput,
   ScrollView,
-  ActivityIndicator, // For Progress Indicator
+  ActivityIndicator,
+  Alert, // For Progress Indicator
 } from "react-native";
 import { useLocalSearchParams, Stack, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
 import "nativewind";
-import { getCourseWithLessons } from "../../lib/appwrite";
+import { createUserCourse, getCourseWithLessons } from "../../lib/appwrite";
 import PageHeader from "../../components/PageHeader";
 import { useGlobalContext } from "../../context/GlobalProvider";
 
 const CourseDetails = () => {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { subscription } = useGlobalContext();
+  const { subscription, user } = useGlobalContext();
   const [data, setCourse] = useState<any>(null);
   const [lessons, setLessons] = useState<any>(null);
   const [loading, setLoading] = useState(true); // For tracking loading state
   const [error, setError] = useState<string | null>(null); // For tracking errors
-
-
+  const [totalLessons, setTotalLessons] = useState<number | null>(null);
+  const userId = user?.Id || "";
 
   useEffect(() => {
     async function fetchCourses() {
@@ -34,6 +35,8 @@ const CourseDetails = () => {
         setLoading(true);
         const courseData = await getCourseWithLessons(id?.toString() || "");
         setCourse(courseData.course);
+        setTotalLessons(courseData.course.lessons);
+
         setLessons(courseData.lessons);
         setError(null); // Clear any previous errors
       } catch (error: any) {
@@ -46,19 +49,35 @@ const CourseDetails = () => {
 
     fetchCourses();
   }, []);
+  const handleVideoPress = async (
+    url: string,
+    courseId: string,
+    totalLessons: number,
+    lessonId: string
+  ) => {
+    try {
+      // Enroll the user in the course if not already enrolled
+      await createUserCourse(userId, courseId, totalLessons);
 
-  const handleVideoPress = (url: string) => {
-    if (data && !data.isPaid) {
-      alert("Course is locked. Please subscribe to access.");
-      return;
-    }
-    if (data && data.format === "video") {
-      router.push(`/video_play/${encodeURIComponent(url)}`);
-    } else {
-      router.push(`/audio_play/${url}`);
+      // Navigate to the appropriate media playback page
+      if (data && data.format === "video") {
+        router.push(
+          `/video_play/${encodeURIComponent(url)}?courseId=${encodeURIComponent(
+            courseId
+          )}&lessonId=${encodeURIComponent(lessonId)}`
+        );
+      } else {
+        router.push(
+          `/audio_play/${encodeURIComponent(url)}?courseId=${encodeURIComponent(
+            courseId
+          )}&lessonId=${encodeURIComponent(lessonId)}`
+        );
+      }
+    } catch (error: any) {
+      console.error("Error handling video press:", error.message);
+      Alert.alert("Error", "An Error Occurred");
     }
   };
-
 
   const renderVideo = ({ item }: any) => {
     // Determine if the video is accessible based on subscription or if it's free
@@ -67,7 +86,10 @@ const CourseDetails = () => {
     return (
       <TouchableOpacity
         disabled={!isAccessible} // Disable button if not accessible
-        onPress={() => isAccessible && handleVideoPress(item.url)}
+        onPress={() =>
+          isAccessible &&
+          handleVideoPress(item.url, data.$id, totalLessons!!, item.$id)
+        }
         className={`flex-row justify-between items-center py-4 border-b ${
           isAccessible ? "border-gray-700" : "border-gray-500"
         }`}
@@ -101,7 +123,6 @@ const CourseDetails = () => {
       </TouchableOpacity>
     );
   };
-
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -151,11 +172,11 @@ const CourseDetails = () => {
 
             {/* Lessons Section */}
             <TouchableOpacity
-           onPress={() => {
-            if (!subscription) {
-              router.push("subscribe"); // Navigate to the subscription page
-            } 
-          }}
+              onPress={() => {
+                if (!subscription) {
+                  router.push("subscribe"); // Navigate to the subscription page
+                }
+              }}
               className={`p-3 bg-secondary rounded-lg mb-4 h-14 flex-row items-center justify-center`} // Added flex-row for the icon
             >
               {!subscription && (
