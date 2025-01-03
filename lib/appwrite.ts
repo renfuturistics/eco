@@ -78,7 +78,7 @@ export async function createUser(
 
     return newUser;
   } catch (error: any) {
-    console.log(error);
+ 
     throw new Error(error);
   }
 }
@@ -524,7 +524,6 @@ export const createUserCourse = async (
     throw new Error("Failed to create user course.");
   }
 };
-
 export const handleVideoCompletion = async (userId: string, courseId: string, lessonId: string) => {
   try {
     // Fetch the current enrollment record for the user and course
@@ -539,48 +538,50 @@ export const handleVideoCompletion = async (userId: string, courseId: string, le
 
     // Ensure the user is enrolled in the course
     if (enrollmentResponse.documents.length === 0) {
-      console.log("User is not enrolled in this course.");
+
       return;
     }
 
     const enrollment = enrollmentResponse.documents[0];
 
+    // Ensure completedLessonIds is an array
+    const completedLessonIds = Array.isArray(enrollment.completedLessonIds)
+      ? enrollment.completedLessonIds
+      : [];
+
     // Check if the lesson is already marked as completed
-    const completedLessons = enrollment.completedLessons || [];
-    if (completedLessons.includes(lessonId)) {
-      console.log("This lesson has already been completed.");
+    if (completedLessonIds.includes(lessonId)) {
+
       return; // Do nothing if the lesson is already completed
     }
 
-    // Add the lesson to the completedLessons list
-    completedLessons.push(lessonId);
+    // Add the lesson ID to the completedLessonIds array
+    completedLessonIds.push(lessonId);
 
-    // Increment the completed lessons count
-    const updatedEnrollment = await databases.updateDocument(
+    // Increment the completedLessons count
+    await databases.updateDocument(
       appwriteConfig.databaseId,
       appwriteConfig.userCoursesCollectionId,
       enrollment.$id,
       {
-        completedLessons,
-        completedLessonsCount: completedLessons.length, // Optional: you can track total completed lessons
+        completedLessons: enrollment.completedLessons + 1,
+        completedLessonIds, // Update the array to include the new lesson
       }
     );
 
-    console.log("Lesson completed:", updatedEnrollment);
+
 
     // Proceed to add points (or any other logic)
     addPoints(userId, 5)
-      .then((response) => {
-        console.log("Points awarded:", response);
-      })
+      
       .catch((error) => {
-        console.log("Error awarding points:", error);
+        console.error("Error awarding points:", error);
       });
-
   } catch (error) {
     console.error("Error handling video completion:", error);
   }
 };
+
 
 export const getAllPosts = async () => {
   try {
@@ -840,9 +841,7 @@ export const markAllNotificationsAsRead = async (userId: string) => {
     // Await all updates
     await Promise.all(updatePromises);
 
-    console.log(
-      `Marked ${notifications.total} notifications as read for user: ${userId}`
-    );
+
     return { success: true, count: notifications.total };
   } catch (error) {
     console.error("Error marking notifications as read:", error);
@@ -859,9 +858,7 @@ export const countUnreadNotifications = async (userId: string) => {
     );
 
     // Return the count of unread notifications
-    console.log(
-      `User ${userId} has ${notifications.total} unread notifications.`
-    );
+
     return notifications.total;
   } catch (error) {
     console.error("Error counting unread notifications:", error);
@@ -1081,7 +1078,7 @@ export const createMessage = async (message: {
   senderId: string; // The ID of the user sending the message
   content: string; // The content of the message
 }) => {
-  console.log(message.conversationId);
+
   try {
     // Create the message document
     const newMessage = await databases.createDocument(
