@@ -124,7 +124,7 @@ const AddPostPage = () => {
         {/* Title Input */}
         <View className="mb-4">
           <TextInput
-            className="bg-gray-800 text-white p-2 rounded-lg"
+            className="bg-gray-800 text-white p-2 rounded-lg h-16"
             placeholder="Enter Post Title"
             placeholderTextColor="#B3B3B3"
             value={title}
@@ -138,7 +138,7 @@ const AddPostPage = () => {
         {/* Description Input */}
         <View className="mb-5">
           <TextInput
-            className="bg-gray-800 text-white p-2 rounded-lg placeholder-gray-500"
+            className="bg-gray-800 text-white p-2 rounded-lg placeholder-gray-500 h-16"
             placeholder="Add a description..."
             placeholderTextColor="#888"
             value={description}
@@ -156,7 +156,7 @@ const AddPostPage = () => {
         {/* Tags Input */}
         <View className="mb-4">
           <TextInput
-            className="bg-gray-800 text-white p-2 rounded-lg"
+            className="bg-gray-800 text-white p-2 rounded-lg h-16"
             placeholder="Enter Tags (comma-separated)"
             placeholderTextColor="#B3B3B3"
             value={tags}

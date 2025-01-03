@@ -485,6 +485,48 @@ export const getUserCourses = async (userID: string) => {
     throw new Error("Failed to fetch enrolled courses.");
   }
 };
+export const createUserCourse = async (
+  userID: string,
+  courseID: string,
+  totalLessons: number
+) => {
+  try {
+    // Check if the user is already enrolled in the course
+    const existingEnrollment = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.userProgressCollectionId,
+      [
+        Query.equal("user", userID),
+        Query.equal("course", courseID),
+      ]
+    );
+
+    if (existingEnrollment.documents.length > 0) {
+      throw new Error("User is already enrolled in this course.");
+    }
+
+    // Create a new document for the user's course enrollment
+    const enrollment = await databases.createDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.userProgressCollectionId,
+      ID.unique(),
+      {
+        user: userID,
+        course: courseID,
+        totalLessons,
+        completedLessons: 0, // Initial completed lessons set to 0
+        isCompleted: false,  // Initial course completion status set to false
+        progress: 0,         // Progress as a percentage (initially 0)
+        lastUpdated: new Date().toISOString(),
+      }
+    );
+
+    return enrollment;
+  } catch (error) {
+    console.error("Error creating user course:", error);
+    throw new Error("Failed to create user course.");
+  }
+};
 export const getAllPosts = async () => {
   try {
     const response = await databases.listDocuments(
