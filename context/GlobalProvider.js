@@ -28,7 +28,7 @@ const GlobalProvider = ({ children }) => {
               setSubscription(activeSubscription); // Update the subscription state
             }
           } catch (subError) {
-            console.error("Error fetching subscription:", subError);
+
             // Keep subscription as it is; do not set to null unnecessarily
           }
         } else {

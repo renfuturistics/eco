@@ -1263,6 +1263,8 @@ export const generateCertificate = async () => {
     console.error(error);
   }
 };
+
+
 export async function createSubscription(userId: string, paymentId: string) {
   try {
     // Calculate the subscription's expiration date (e.g., one month from now)
@@ -1310,7 +1312,7 @@ export async function getActiveSubscription(userId: string) {
 
     return subscriptions.documents[0]; // Return the active subscription
   } catch (error: any) {
-    console.error("Error in getActiveSubscription:", error.message || error);
+
     throw new Error(error);
   }
 }
