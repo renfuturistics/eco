@@ -5,24 +5,23 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from "expo-router";
 
 type Course = {
-course:{
-  $id: number;
-  thumbnail: string;
-  category: any;
-  title: string;
-  instructor: string;
-  completedLessons: number;
-  total: number;
-
-  date: string;
-},
-progress:{
-  course:string;
-  completedLessons:number,
-  isComplete:string;
-  totalLessons:number
-  isCompleted: boolean;
-}
+  course: {
+    $id: number;
+    thumbnail: string;
+    category: any;
+    title: string;
+    instructor: string;
+    completedLessons: number;
+    total: number;
+    date: string;
+  };
+  progress: {
+    course: string;
+    completedLessons: number;
+    isComplete: string;
+    totalLessons: number;
+    isCompleted: boolean;
+  };
 };
 
 type CourseItemProps = {
@@ -31,7 +30,14 @@ type CourseItemProps = {
 
 const CourseItem = ({ course }: CourseItemProps) => {
   const router = useRouter();
-console.debug(course.course)
+
+  // Calculate progress with clamping
+  const progressValue = course.progress.totalLessons > 0
+    ? parseFloat(
+        (course.progress.completedLessons / course.progress.totalLessons).toFixed(2)
+      )
+    : 0;
+
   return (
     <TouchableOpacity 
       onPress={() => {
@@ -55,7 +61,6 @@ console.debug(course.course)
 
         {/* Ongoing vs Completed Display */}
         {course.progress.isCompleted ? (
-          // Completed: "View Certificate" Button
           <View className="flex-row items-center">
             <TouchableOpacity 
               onPress={() => {
@@ -78,11 +83,10 @@ console.debug(course.course)
             </TouchableOpacity>
           </View>
         ) : (
-          // Ongoing: Progress Bar and Status
           <View className="flex-row items-center">
             <View className="flex-1 mr-2">
               <ProgressBar 
-                progress={course.progress.completedLessons / course.progress.totalLessons} // Progress fraction
+                progress={progressValue}
                 color="#FF9C01"
                 style={{ height: 8, borderRadius: 4, backgroundColor: "#3b3b3b" }}
               />

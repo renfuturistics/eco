@@ -27,6 +27,7 @@ export const appwriteConfig = {
   conversationsCollectionId: "675ff98a0034a054c900",
   messagesCollectionId: "675ffbe600292a61dc98",
   certificateFunctionId: "676fc380002e66f4afbe",
+  grownthCollectionId: "677ba1ad002846adc8e1",
   subscriptionCollectionId: "6773c7bd000ca5f2a632",
 };
 
@@ -78,7 +79,6 @@ export async function createUser(
 
     return newUser;
   } catch (error: any) {
- 
     throw new Error(error);
   }
 }
@@ -513,8 +513,6 @@ export const createUserCourse = async (
         totalLessons,
         completedLessons: 0, // Initial completed lessons set to 0
         isCompleted: false, // Initial course completion status set to false
-
-
       }
     );
 
@@ -524,21 +522,21 @@ export const createUserCourse = async (
     throw new Error("Failed to create user course.");
   }
 };
-export const handleVideoCompletion = async (userId: string, courseId: string, lessonId: string) => {
+export const handleVideoCompletion = async (
+  userId: string,
+  courseId: string,
+  lessonId: string
+) => {
   try {
     // Fetch the current enrollment record for the user and course
     const enrollmentResponse = await databases.listDocuments(
       appwriteConfig.databaseId,
       appwriteConfig.userCoursesCollectionId,
-      [
-        Query.equal("user", userId),
-        Query.equal("course", courseId),
-      ]
+      [Query.equal("user", userId), Query.equal("course", courseId)]
     );
 
     // Ensure the user is enrolled in the course
     if (enrollmentResponse.documents.length === 0) {
-
       return;
     }
 
@@ -551,7 +549,6 @@ export const handleVideoCompletion = async (userId: string, courseId: string, le
 
     // Check if the lesson is already marked as completed
     if (completedLessonIds.includes(lessonId)) {
-
       return; // Do nothing if the lesson is already completed
     }
 
@@ -559,24 +556,35 @@ export const handleVideoCompletion = async (userId: string, courseId: string, le
     completedLessonIds.push(lessonId);
 
     // Increment the completedLessons count
+    const updatedCompletedLessons = enrollment.completedLessons + 1;
+
+    // Check if all lessons are completed
+    const isCourseComplete =
+      updatedCompletedLessons === enrollment.totalLessons;
+
+    // Update the enrollment record with the new data
     await databases.updateDocument(
       appwriteConfig.databaseId,
       appwriteConfig.userCoursesCollectionId,
       enrollment.$id,
       {
-        completedLessons: enrollment.completedLessons + 1,
+        completedLessons: updatedCompletedLessons,
         completedLessonIds, // Update the array to include the new lesson
+        isCompleted: isCourseComplete, // Set the completion status
+        lastUpdatedAttribute:"completedLessons"
       }
     );
 
+    // Award points to the user
+    addPoints(userId, 5).catch((error) => {
+      console.error("Error awarding points:", error);
+    });
 
-
-    // Proceed to add points (or any other logic)
-    addPoints(userId, 5)
-      
-      .catch((error) => {
-        console.error("Error awarding points:", error);
-      });
+    // Optionally, you can notify the user of course completion
+    if (isCourseComplete) {
+      console.log(`User ${userId} has completed the course ${courseId}!`);
+      // Trigger notification logic or any post-completion workflow
+    }
   } catch (error) {
     console.error("Error handling video completion:", error);
   }
@@ -841,7 +849,6 @@ export const markAllNotificationsAsRead = async (userId: string) => {
     // Await all updates
     await Promise.all(updatePromises);
 
-
     return { success: true, count: notifications.total };
   } catch (error) {
     console.error("Error marking notifications as read:", error);
@@ -1078,7 +1085,6 @@ export const createMessage = async (message: {
   senderId: string; // The ID of the user sending the message
   content: string; // The content of the message
 }) => {
-
   try {
     // Create the message document
     const newMessage = await databases.createDocument(
@@ -1264,7 +1270,6 @@ export const generateCertificate = async () => {
   }
 };
 
-
 export async function createSubscription(userId: string, paymentId: string) {
   try {
     // Calculate the subscription's expiration date (e.g., one month from now)
@@ -1312,7 +1317,6 @@ export async function getActiveSubscription(userId: string) {
 
     return subscriptions.documents[0]; // Return the active subscription
   } catch (error: any) {
-
     throw new Error(error);
   }
 }
@@ -1344,3 +1348,52 @@ export async function expireSubscriptions() {
     throw new Error(error);
   }
 }
+
+export const updateGrowthSummary = async (
+  userId: string,
+  lessonsCompleted: number,
+  timeSpent: number
+) => {
+  try {
+    const response = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.grownthCollectionId,
+      [Query.equal("userId", userId)]
+    );
+
+    if (response.documents.length > 0) {
+      const growthSummary = response.documents[0];
+
+      // Update existing growth data
+      await databases.updateDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.grownthCollectionId,
+        growthSummary.$id,
+        {
+          totalLessonsCompleted:
+            growthSummary.totalLessonsCompleted + lessonsCompleted,
+          totalTimeSpent: growthSummary.totalTimeSpent + timeSpent,
+          daysActive: growthSummary.daysActive + 1, // Increment for daily activity
+        }
+      );
+    } else {
+      // Create new growth summary if not exists
+      await databases.createDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.grownthCollectionId,
+        ID.unique(),
+        {
+          userId,
+          totalCoursesCompleted: 0,
+          totalLessonsCompleted: lessonsCompleted,
+          averageQuizScore: 0,
+          totalTimeSpent: timeSpent,
+          daysActive: 1,
+          badgesEarned: [],
+        }
+      );
+    }
+  } catch (error) {
+    console.error("Error updating growth summary:", error);
+  }
+};
