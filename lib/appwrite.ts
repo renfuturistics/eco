@@ -513,6 +513,7 @@ export const createUserCourse = async (
         totalLessons,
         completedLessons: 0, // Initial completed lessons set to 0
         isCompleted: false, // Initial course completion status set to false
+        lastUpdatedAttribute:"isCompleted"
       }
     );
 
