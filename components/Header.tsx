@@ -9,7 +9,7 @@ const Header: React.FC<{ userId: string,notificationCount:number }> = ({ userId,
 
 
   return (
-    <View className="flex flex-col items-start p-3 bg-[#262D34] absolute w-full h-[60px] mt-5">
+    <View className="flex flex-col items-start p-3 bg-gray-800 absolute w-full h-[60px] mt-5">
       {/* Main Header Layout */}
       <View className="flex flex-row items-center justify-between w-[335px] h-[36px]">
         {/* Logo Section */}

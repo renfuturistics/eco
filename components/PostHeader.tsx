@@ -21,7 +21,7 @@ const PostHeader: React.FC<PostHeaderProps> = ({
 }) => {
   return (
     <View
-      className="flex flex-row items-center justify-between px-4 bg-black-200 h-12"
+      className="flex flex-row items-center justify-between px-4 bg-gray-800 h-12"
       style={{ height: 60 }}
     >
       {/* Left Section: Logo and Search Icon */}
