@@ -10,7 +10,7 @@ import {
   SafeAreaView,
   ScrollView,
 } from "react-native";
-import { fetchGoalAndMilestones, markMilestoneAsComplete } from "../../lib/appwrite";
+import { fetchGoalAndMilestones, markMilestoneAsComplete, updateGoalProgress } from "../../lib/appwrite";
 import PageHeader from "../../components/PageHeader";
 
 const GoalDetails = () => {
@@ -32,20 +32,39 @@ const GoalDetails = () => {
       // Toggle the completion status
       const newStatus = !milestone.isCompleted;
   
-      // Update in Appwrite
+      // Update milestone status in Appwrite
       await markMilestoneAsComplete(milestoneId, newStatus);
   
-      // Update the state locally
-      setMilestones((prevMilestones) =>
-        prevMilestones.map((m) =>
-          m.$id === milestoneId ? { ...m, isCompleted: newStatus } : m
-        )
+      // Update milestones state locally
+      const updatedMilestones = milestones.map((m) =>
+        m.$id === milestoneId ? { ...m, isCompleted: newStatus } : m
       );
+      setMilestones(updatedMilestones);
+  
+      // Calculate progress: (completed / total)
+      const totalMilestones = updatedMilestones.length;
+      const completedMilestones = updatedMilestones.filter(
+        (m) => m.isCompleted
+      ).length;
+      const newProgress = totalMilestones
+        ? parseFloat((completedMilestones / totalMilestones).toFixed(2))
+        : 0;
+
+      // Update progress in Appwrite
+      await updateGoalProgress(id.toString(), totalMilestones===completedMilestones,newProgress);
+  
+      // Update goal progress locally
+      setGoal((prevGoal: any) => ({
+        ...prevGoal,
+        progress: newProgress,
+      }));
     } catch (error) {
+      console.log(id.toString())
       console.error("Error toggling milestone completion:", error);
       Alert.alert("Error", "Failed to update milestone status. Please try again.");
     }
   };
+  
   
   // Fetch goal and milestones
   useEffect(() => {

@@ -1499,6 +1499,7 @@ export const fetchGoalAndMilestones = async (goalId: string) => {
     throw new Error("Failed to fetch goal and milestones.");
   }
 };
+
 export const markMilestoneAsComplete = async (
   milestoneId: string,
   isCompleted: boolean
@@ -1506,14 +1507,30 @@ export const markMilestoneAsComplete = async (
   try {
     // Update the milestone document in the database
     await databases.updateDocument(
-    appwriteConfig.  databaseId,
+      appwriteConfig.databaseId,
       appwriteConfig.milestonesCollectionId,
       milestoneId,
-      { isCompleted }
+      { isCompleted, completionDate:isCompleted?new Date() :null}
     );
-    console.log("Milestone updated successfully!");
   } catch (error) {
     console.error("Error updating milestone:", error);
     throw new Error("Failed to update milestone status.");
+  }
+};
+export const updateGoalProgress = async (goalId: string, completed:boolean,progress:number) => {
+  
+  try {
+    await databases.updateDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.goalsCollectionId,
+      goalId,
+      {
+        completed,
+        progress
+      }
+    );
+  } catch (error) {
+    console.error("Error updating goal progress:", error);
+    throw error;
   }
 };
