@@ -1499,3 +1499,21 @@ export const fetchGoalAndMilestones = async (goalId: string) => {
     throw new Error("Failed to fetch goal and milestones.");
   }
 };
+export const markMilestoneAsComplete = async (
+  milestoneId: string,
+  isCompleted: boolean
+): Promise<void> => {
+  try {
+    // Update the milestone document in the database
+    await databases.updateDocument(
+    appwriteConfig.  databaseId,
+      appwriteConfig.milestonesCollectionId,
+      milestoneId,
+      { isCompleted }
+    );
+    console.log("Milestone updated successfully!");
+  } catch (error) {
+    console.error("Error updating milestone:", error);
+    throw new Error("Failed to update milestone status.");
+  }
+};

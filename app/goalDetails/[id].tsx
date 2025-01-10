@@ -10,7 +10,7 @@ import {
   SafeAreaView,
   ScrollView,
 } from "react-native";
-import { fetchGoalAndMilestones } from "../../lib/appwrite";
+import { fetchGoalAndMilestones, markMilestoneAsComplete } from "../../lib/appwrite";
 import PageHeader from "../../components/PageHeader";
 
 const GoalDetails = () => {
@@ -20,15 +20,33 @@ const GoalDetails = () => {
   const [loading, setLoading] = useState(true);
 
   // Toggle milestone completion
-  const toggleMilestoneCompletion = (milestoneId: string) => {
-    const updatedMilestones = milestones.map((milestone) =>
-      milestone.$id === milestoneId
-        ? { ...milestone, isCompleted: !milestone.isCompleted }
-        : milestone
-    );
-    setMilestones(updatedMilestones);
+  const toggleMilestoneCompletion = async (milestoneId: string) => {
+    try {
+      // Find the milestone to toggle
+      const milestone = milestones.find((m) => m.$id === milestoneId);
+  
+      if (!milestone) {
+        throw new Error("Milestone not found.");
+      }
+  
+      // Toggle the completion status
+      const newStatus = !milestone.isCompleted;
+  
+      // Update in Appwrite
+      await markMilestoneAsComplete(milestoneId, newStatus);
+  
+      // Update the state locally
+      setMilestones((prevMilestones) =>
+        prevMilestones.map((m) =>
+          m.$id === milestoneId ? { ...m, isCompleted: newStatus } : m
+        )
+      );
+    } catch (error) {
+      console.error("Error toggling milestone completion:", error);
+      Alert.alert("Error", "Failed to update milestone status. Please try again.");
+    }
   };
-
+  
   // Fetch goal and milestones
   useEffect(() => {
     const fetchData = async () => {
@@ -76,7 +94,7 @@ const GoalDetails = () => {
 
       {/* Goal Details */}
       <ScrollView className="flex-1">
-        <View className="p-6 bg-primary rounded-b-3xl shadow-md">
+        <View className="p-6 bg-[#262D34] rounded-b-3xl shadow-md">
           <Text className="text-white text-3xl font-bold mb-2">{goal.title}</Text>
           <Text className="text-gray-200 text-base leading-6">
             {goal.description}
