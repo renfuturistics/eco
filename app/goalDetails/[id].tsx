@@ -12,13 +12,15 @@ import {
 } from "react-native";
 import { fetchGoalAndMilestones, markMilestoneAsComplete, updateGoalProgress } from "../../lib/appwrite";
 import PageHeader from "../../components/PageHeader";
+import { useGlobalContext } from "../../context/GlobalProvider";
 
 const GoalDetails = () => {
   const { id } = useLocalSearchParams();
   const [goal, setGoal] = useState<any>(null);
   const [milestones, setMilestones] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
+  const { user } = useGlobalContext();
+  const userId = user?.Id
   // Toggle milestone completion
   const toggleMilestoneCompletion = async (milestoneId: string) => {
     try {
@@ -51,7 +53,7 @@ const GoalDetails = () => {
         : 0;
 
       // Update progress in Appwrite
-      await updateGoalProgress(id.toString(), totalMilestones===completedMilestones,newProgress);
+      await updateGoalProgress(id.toString(), totalMilestones===completedMilestones,newProgress,userId);
   
       // Update goal progress locally
       setGoal((prevGoal: any) => ({

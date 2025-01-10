@@ -1517,20 +1517,56 @@ export const markMilestoneAsComplete = async (
     throw new Error("Failed to update milestone status.");
   }
 };
-export const updateGoalProgress = async (goalId: string, completed:boolean,progress:number) => {
-  
+export const updateGoalProgress = async (
+  goalId: string,
+  completed: boolean,
+  progress: number,
+  userId: string // Pass the userId to query the growthSummary
+) => {
   try {
+    // Update the goal's progress and completion status
     await databases.updateDocument(
       appwriteConfig.databaseId,
       appwriteConfig.goalsCollectionId,
       goalId,
       {
         completed,
-        progress
+        progress,
       }
     );
+
+    // If the goal is completed, update the growthSummary
+    if (completed) {
+      // Fetch the growthSummary document for the user
+      const growthSummaryQuery = await databases.listDocuments(
+        appwriteConfig.databaseId,
+        appwriteConfig.grownthCollectionId,
+        [Query.equal("userId", userId)] // Adjust "user" to match your field name
+      );
+
+      // Ensure at least one document is found
+      if (growthSummaryQuery.documents.length > 0) {
+        const growthSummaryId = growthSummaryQuery.documents[0].$id;
+        const currentGoalsCompleted = growthSummaryQuery.documents[0].goalsCompleted || 0;
+
+        // Increment the goalsCompleted field
+        await databases.updateDocument(
+          appwriteConfig.databaseId,
+          appwriteConfig.grownthCollectionId,
+          growthSummaryId,
+          {
+            goalsCompleted: currentGoalsCompleted + 1,
+            lastActivityDate:new Date()
+          }
+        );
+      } else {
+        console.error("No growthSummary document found for the user.");
+        throw new Error("Growth summary not found.");
+      }
+    }
   } catch (error) {
     console.error("Error updating goal progress:", error);
     throw error;
   }
 };
+
