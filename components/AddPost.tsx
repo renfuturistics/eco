@@ -8,7 +8,7 @@ const AddPost = () => {
   const { user } = useGlobalContext();
 
   return (
-    <View className="flex flex-row items-center p-4 bg-black-200 rounded-lg mb-4">
+    <View className="flex flex-row items-center p-4 bg-gray-800 rounded-lg mb-4">
       {/* Avatar */}
       <Image
         source={{ uri: user?user.avatar:"https://via.placeholder.com/150" }} // Replace with your avatar source

@@ -75,7 +75,7 @@ const CoursesHomePage = () => {
     );
   
     return (
-      <View key={type.id} className="mb-8">
+      <View key={type.id} className="mb-8 ">
         <View className="flex-row justify-between items-center mb-6">
           <Text className="text-white text-3xl font-bold">
             {type.name} Programs

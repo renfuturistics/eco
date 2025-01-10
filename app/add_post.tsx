@@ -89,7 +89,7 @@ const AddPostPage = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-900">
+    <SafeAreaView className="flex-1 bg-gray-800">
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView
         style={{ marginTop: Platform.OS === "android" ? 20 : 10 }}

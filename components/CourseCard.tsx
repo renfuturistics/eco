@@ -29,7 +29,7 @@ const CourseCard: React.FC<CourseCardProps> = ({
   return (
     <TouchableOpacity
       onPress={handlePress}
-      className="flex flex-col items-start p-4 gap-y-4 bg-[#262D34] rounded-lg w-full mb-5"
+      className="flex flex-col items-start p-4 gap-y-4 bg-gray-800 rounded-lg w-full mb-5"
     >
       <View className="flex flex-row gap-x-4 w-full">
         {/* Thumbnail */}

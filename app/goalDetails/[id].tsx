@@ -89,12 +89,13 @@ const GoalDetails = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-900">
+        <Stack.Screen options={{ headerShown: false }} />
       <PageHeader title="Goal Details" />
-      <Stack.Screen options={{ headerShown: false }} />
+    
 
       {/* Goal Details */}
       <ScrollView className="flex-1">
-        <View className="p-6 bg-[#262D34] rounded-b-3xl shadow-md">
+        <View className="p-6 bg-gray-800 rounded-lg shadow-md">
           <Text className="text-white text-3xl font-bold mb-2">{goal.title}</Text>
           <Text className="text-gray-200 text-base leading-6">
             {goal.description}
