@@ -89,6 +89,22 @@ const TabsLayout = () => {
             ),
           }}
         />
+        
+        <Tabs.Screen
+          name="goals"
+          options={{
+            title: "Goals",
+            headerShown: false,
+            tabBarIcon: ({ color, focused }) => (
+              <TabIcon
+                icon={icons.plus}
+                color={color}
+                name="goals"
+                focused={focused}
+              />
+            ),
+          }}
+        />
         <Tabs.Screen
           name="progress"
           options={{

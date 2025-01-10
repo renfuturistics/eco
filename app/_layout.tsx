@@ -42,6 +42,7 @@ const RootLayout = () => {
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="subscribe" options={{ headerShown: false }} />
         <Stack.Screen name="search/[query]" options={{ headerShown: false }} />
+        <Stack.Screen name="goalDetails" options={{ headerShown: false }} />
         <Stack.Screen name="course_details/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="video_play/[url]" options={{ headerShown: false }} />
         <Stack.Screen name="audio_play/[audioUrl]" options={{ headerShown: false }} />

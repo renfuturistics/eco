@@ -29,6 +29,8 @@ export const appwriteConfig = {
   certificateFunctionId: "676fc380002e66f4afbe",
   grownthCollectionId: "677ba1ad002846adc8e1",
   subscriptionCollectionId: "6773c7bd000ca5f2a632",
+  goalsCollectionId: "677f97ee0032852f9984",
+  milestonesCollectionId: "677f98e9000c14099d12",
 };
 
 const client = new Client();
@@ -513,7 +515,7 @@ export const createUserCourse = async (
         totalLessons,
         completedLessons: 0, // Initial completed lessons set to 0
         isCompleted: false, // Initial course completion status set to false
-        lastUpdatedAttribute:"isCompleted"
+        lastUpdatedAttribute: "isCompleted",
       }
     );
 
@@ -572,7 +574,7 @@ export const handleVideoCompletion = async (
         completedLessons: updatedCompletedLessons,
         completedLessonIds, // Update the array to include the new lesson
         isCompleted: isCourseComplete, // Set the completion status
-        lastUpdatedAttribute:"completedLessons"
+        lastUpdatedAttribute: "completedLessons",
       }
     );
 
@@ -590,7 +592,6 @@ export const handleVideoCompletion = async (
     console.error("Error handling video completion:", error);
   }
 };
-
 
 export const getAllPosts = async () => {
   try {
@@ -1396,5 +1397,105 @@ export const updateGrowthSummary = async (
     }
   } catch (error) {
     console.error("Error updating growth summary:", error);
+  }
+};
+
+export const createGoal = async (
+  userID: string,
+  title: string,
+  description: string,
+  milestones: { title: string }[],
+  startDate: string,
+  endDate: string
+) => {
+  try {
+    // Create the main goal document
+    const goalDocument = await databases.createDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.goalsCollectionId,
+      ID.unique(),
+      {
+        userId: userID,
+        title,
+        description,
+        startDate,
+        endDate,
+        progress: 0,
+      }
+    );
+
+    // Save each milestone associated with the goal
+    for (const milestone of milestones) {
+      await databases.createDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.milestonesCollectionId,
+        ID.unique(),
+        {
+          goal_id: goalDocument.$id,
+          title: milestone.title,
+          isCompleted: false,
+        }
+      );
+    }
+
+    return goalDocument;
+  } catch (error) {
+    console.error("Error creating goal and milestones:", error);
+    throw new Error("Failed to create goal and milestones.");
+  }
+};
+
+export const fetchGoals = async (userId: string) => {
+  try {
+    const response = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.goalsCollectionId,
+      [Query.equal("userId", userId)] // Replace with dynamic user ID
+    );
+
+    return response.documents;
+  } catch (error) {
+    console.error("Error creating goal and milestones:", error);
+    throw new Error("Failed to create goal and milestones.");
+  }
+};
+export const fetchGoalsMilestones = async (id: string) => {
+  try {
+    const response = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.milestonesCollectionId,
+      [Query.equal("goal_id", id)] // Replace with dynamic user ID
+    );
+
+    return response.documents;
+  } catch (error) {
+    console.error("Error fetching milestones:", error);
+    throw new Error("Failed to get milestones.");
+  }
+};
+export const fetchGoalAndMilestones = async (goalId: string) => {
+  try {
+    // Fetch the goal document
+    const goalResponse = await databases.getDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.goalsCollectionId, // Collection ID for goals
+      goalId
+    );
+
+    // Fetch the milestones associated with the goal
+    const milestonesResponse = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.milestonesCollectionId, // Collection ID for milestones
+      [Query.equal("goal_id", goalId)]
+    );
+
+    // Return the goal and milestones
+    return {
+      goal: goalResponse,
+      milestones: milestonesResponse.documents,
+    };
+  } catch (error) {
+    console.error("Error fetching goal and milestones:", error);
+    throw new Error("Failed to fetch goal and milestones.");
   }
 };
