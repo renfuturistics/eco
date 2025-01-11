@@ -1517,6 +1517,7 @@ export const markMilestoneAsComplete = async (
     throw new Error("Failed to update milestone status.");
   }
 };
+
 export const updateGoalProgress = async (
   goalId: string,
   completed: boolean,
@@ -1570,3 +1571,25 @@ export const updateGoalProgress = async (
   }
 };
 
+
+
+
+export const fetchGrowthSummary = async (userId: string) => {
+  try {
+    const response = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.grownthCollectionId,
+      [Query.equal("userId", userId)]
+    );
+
+    if (response.documents.length === 0) {
+      throw new Error("No growth summary found for the user.");
+    }
+
+    // Assuming there’s only one growth summary document per user
+    return response.documents[0];
+  } catch (error) {
+    console.error("Error fetching growth summary:", error);
+    throw error;
+  }
+};

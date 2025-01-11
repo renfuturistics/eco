@@ -30,7 +30,9 @@ import BottomSheet, {
   BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import AntDesign from '@expo/vector-icons/AntDesign';
+import AntDesign from "@expo/vector-icons/AntDesign";
+import GoalsList from "../../components/goalList";
+import GrowthSummary from "../../components/GrowthSummary";
 const ProfilePage = () => {
   const router = useRouter();
   const { setIsLogged, setUser, user } = useGlobalContext();
@@ -41,7 +43,7 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true); // Track loading state
   const [bottomSheetIndex, setBottomSheetIndex] = useState(-1); // State for controlling BottomSheet
   const sheetRef = useRef<BottomSheet>(null);
-
+  const [activeTab, setActiveTab] = useState<"Posts" | "Growth">("Posts");
   const userId = user?.Id || "";
 
   // User Info
@@ -144,13 +146,12 @@ const ProfilePage = () => {
         {/* Top Navigation */}
         <View style={styles.headerContainer}>
           <Text style={styles.headerText}>{"Profile"}</Text>
-          <View style={{ gap: 20, flexDirection: "row",alignItems:"center" }}>
+          <View style={{ gap: 20, flexDirection: "row", alignItems: "center" }}>
             <TouchableOpacity
-              onPress={()=>router.push("inbox")}
+              onPress={() => router.push("inbox")}
               accessibilityLabel="Toggle menu"
             >
               <AntDesign name="message1" size={22} color="white" />
-      
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -196,25 +197,50 @@ const ProfilePage = () => {
             <Text style={styles.pointsText}>You have earned</Text>
             <Text style={styles.pointsValue}>{points || 0} Points</Text>
           </View>
-          <View style={styles.postsSection}>
-            <Text style={styles.postsTitle}>Your Posts</Text>
-            {posts.length > 0 ? (
-              posts.map((post: any) => (
-                <UserPostCard
-                  key={post?.$id}
-                  id={post?.$id}
-                  title={post?.title || "Untitled"}
-                  description={post?.description || "No description provided"}
-                  image={post.image} // Placeholder image
-                  avatar={post?.user?.avatar || userInfo.avatar}
-                  tags={post?.tags || []}
-                  comments={post?.comments || 0}
-                />
-              ))
-            ) : (
-              <Text style={styles.noPostsText}>You have no posts yet.</Text>
-            )}
+
+          <View className="flex-row mt-4 py-2 bg-gray-900 gap-x-2">
+            {["Posts", "Growth"].map((tab) => (
+              <TouchableOpacity
+                key={tab}
+                onPress={() => setActiveTab(tab as "Posts" | "Growth")}
+                className={`flex-1 py-3 rounded-lg ${
+                  activeTab === tab ? "bg-secondary" : "bg-gray-700"
+                }`}
+              >
+                <Text
+                  className={`text-center font-semibold text-base ${
+                    activeTab === tab ? "text-white" : "text-gray-300"
+                  }`}
+                >
+                  {tab}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
+
+          {activeTab === "Posts" ? (
+            <View style={styles.postsSection}>
+              <Text style={styles.postsTitle}>Your Posts</Text>
+              {posts.length > 0 ? (
+                posts.map((post: any) => (
+                  <UserPostCard
+                    key={post?.$id}
+                    id={post?.$id}
+                    title={post?.title || "Untitled"}
+                    description={post?.description || "No description provided"}
+                    image={post.image} // Placeholder image
+                    avatar={post?.user?.avatar || userInfo.avatar}
+                    tags={post?.tags || []}
+                    comments={post?.comments || 0}
+                  />
+                ))
+              ) : (
+                <Text style={styles.noPostsText}>You have no posts yet.</Text>
+              )}
+            </View>
+          ) : (
+            <GrowthSummary />
+          )}
         </ScrollView>
 
         {/* Bottom Sheet */}
