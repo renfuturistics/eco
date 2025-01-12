@@ -7,6 +7,10 @@ import {
   Alert,
   SafeAreaView,
   FlatList,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useGlobalContext } from "../context/GlobalProvider";
@@ -117,6 +121,11 @@ const CreateGoalsWithDates = () => {
   );
 
   return (
+    <KeyboardAvoidingView
+    style={{ flex: 1 }}
+    behavior={Platform.OS === "ios" ? "padding" : undefined}
+  >
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
     <SafeAreaView className="flex-1 bg-gray-900">
 
       <View className="p-2">
@@ -211,6 +220,8 @@ const CreateGoalsWithDates = () => {
         />
       </View>
     </SafeAreaView>
+    </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 };
 

@@ -14,6 +14,7 @@ import PostHeader from "../../components/PostHeader";
 import { images } from "../../constants";
 import { useGlobalContext } from "../../context/GlobalProvider";
 import { router } from "expo-router";
+import SubscriptionPage from "../subscribe";
 
 const ForumScreen = () => {
   const [posts, setPosts] = useState<any[]>([]); // State to store fetched posts
@@ -28,11 +29,6 @@ const ForumScreen = () => {
   const userId = user?.Id || "";
 
   // Redirect non-subscribers
-  useEffect(() => {
-    if (!subscription) {
-      router.push("/subscribe"); // Redirect to subscription page
-    }
-  }, [subscription]);
 
   // Fetch unread notifications count
   useEffect(() => {
@@ -107,6 +103,9 @@ const ForumScreen = () => {
     }
   };
 
+  if(!subscription){
+    return (<SubscriptionPage/>)
+  }
   // Loading state display
   if (initialLoading) {
     return (

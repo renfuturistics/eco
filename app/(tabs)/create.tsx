@@ -16,6 +16,7 @@ import { router, Stack } from "expo-router";
 import { CustomButton } from "../../components";
 import { useGlobalContext } from "../../context/GlobalProvider";
 import { createPost } from "../../lib/appwrite";
+import SubscriptionPage from "../subscribe";
 
 const AddPostPage = () => {
   const [imageUri, setImageUri] = useState<string | null>(null);
@@ -24,9 +25,11 @@ const AddPostPage = () => {
   const [tags, setTags] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [thumbnail, setThumbnail] = useState<any>(null);
-  const { user } = useGlobalContext();
+  const { user ,subscription} = useGlobalContext();
   const userId = user.Id;
-
+  if(!subscription){
+    return (<SubscriptionPage/>)
+  }
   const pickImage = async () => {
     try {
       const { status } =

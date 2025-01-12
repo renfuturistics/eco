@@ -5,14 +5,13 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   FlatList,
-  Animated,
-  Easing,
+  Image,
 } from "react-native";
 import { useGlobalContext } from "../context/GlobalProvider";
 import { createSubscription } from "../lib/appwrite";
 import PageHeader from "../components/PageHeader";
 import { router } from "expo-router";
-
+import { LinearGradient } from "expo-linear-gradient";
 // Loading Indicator Component
 const LoadingIndicator = ({ message }: { message: string }) => (
   <View className="flex justify-center items-center h-full">
@@ -28,47 +27,47 @@ const SubscriptionDetails = ({ subscription }: { subscription: any }) => (
       Active Subscription
     </Text>
     <Text className="text-gray-300 text-lg mb-2">
-      <Text className="font-semibold">Status:</Text> {subscription.status || "N/A"}
+      <Text className="font-semibold">Status:</Text>{" "}
+      {subscription.status || "N/A"}
     </Text>
     <Text className="text-gray-300 text-lg mb-2">
       <Text className="font-semibold">Expires On:</Text>{" "}
       {new Date(subscription.validUntil).toLocaleDateString() || "N/A"}
     </Text>
-    <TouchableOpacity onPress={()=>router.replace("/home")} className="mt-6 bg-secondary py-3 rounded-lg shadow-md">
-      <Text className="text-white text-center font-semibold">
-      Continue
-      </Text>
+    <TouchableOpacity
+      onPress={() => router.replace("/home")}
+      className="mt-6 bg-secondary py-3 rounded-lg shadow-md"
+    >
+      <Text className="text-white text-center font-semibold">Continue</Text>
     </TouchableOpacity>
   </View>
 );
 
 // Subscription Options Component
-const SubscriptionOptions = ({ onSubscribe }: { onSubscribe: (planId: string) => void }) => {
+const SubscriptionOptions = ({
+  onSubscribe,
+}: {
+  onSubscribe: (planId: string) => void;
+}) => {
   const subscriptionPlans = [
-    {
-      id: "basic",
-      name: "Basic Plan",
-      price: "K5/month",
-      benefits: ["Access to basic features"],
-    },
     {
       id: "premium",
       name: "Premium Plan",
       price: "K10/month",
-      benefits: ["All basic features", "Priority support"],
-    },
-    {
-      id: "pro",
-      name: "Pro Plan",
-      price: "K20/month",
-      benefits: ["All premium features", "Advanced analytics"],
+      benefits: [
+        "Access to full lessons",
+        "All basic features",
+        "Priority support",
+        "Create Posts",
+        "Add Goals",
+      ],
     },
   ];
 
   return (
     <View className="bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-lg">
       <Text className="text-white text-xl font-bold text-center mb-6">
-        Choose Your Plan
+        Upgrade to premium
       </Text>
       <FlatList
         data={subscriptionPlans}
@@ -102,7 +101,6 @@ const SubscriptionOptions = ({ onSubscribe }: { onSubscribe: (planId: string) =>
 // Main Subscription Page Component
 const SubscriptionPage = () => {
   const { subscription, setSubscription, user } = useGlobalContext();
-  console.log(subscription)
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -110,7 +108,7 @@ const SubscriptionPage = () => {
     setLoading(true);
     setError(null);
     try {
-      const newSubscription = await createSubscription(user?.Id, planId); // Pass selected plan ID
+      const newSubscription = await createSubscription(user?.Id, planId);
       setSubscription(newSubscription);
     } catch (err) {
       console.error("Subscription error:", err);
@@ -122,8 +120,45 @@ const SubscriptionPage = () => {
 
   return (
     <View className="bg-primary flex-1">
-      <PageHeader title="Subscriptions" />
-      <View className="flex-1 px-4 justify-center items-center py-8">
+
+      <View className="flex-1 px-3 justify-start items-center py-8">
+        {/* Informational Text */}
+
+        <View className="w-full mb-6">
+          <LinearGradient
+            colors={["#1E3A8A", "#3B82F6"]} // Blue gradient from dark to light
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            className="w-full py-8 px-4"
+          >
+            <Text className="text-white text-center text-3xl font-extrabold">
+              Learn without Limits. Try our premium individual plan now
+            </Text>
+          </LinearGradient>
+        </View>
+
+        <View className="mt-2 mb-6">
+          <Text className="text-white text-center text-3xl font-extrabold">
+            Affordable plan for any situation
+          </Text>
+          <Text className="text-white text-xl font-bold text-center mt-4 mb-6">
+            Pay using mobile money
+          </Text>
+          <View className="flex-row justify-center gap-4 space-x-8 mt-4">
+            <Image
+              source={require("../assets/images/airtel.png")} // Replace with your Airtel Money image path
+              className="w-12 h-12 rounded-full bg-white p-2"
+              style={{ padding: 4 }}
+              resizeMode="contain"
+            />
+            <Image
+              source={require("../assets/images/mtn.jpg")} // Replace with your MTN Money image path
+              className="w-12 h-12 rounded-full"
+              resizeMode="contain"
+            />
+          </View>
+        </View>
+
         {/* Render Content Based on Subscription State */}
         {loading ? (
           <LoadingIndicator message="Processing your request..." />
@@ -135,9 +170,7 @@ const SubscriptionPage = () => {
 
         {/* Error Message */}
         {error && (
-          <Text className="text-red-500 text-center mt-6 text-sm">
-            {error}
-          </Text>
+          <Text className="text-red-500 text-center mt-6 text-sm">{error}</Text>
         )}
       </View>
     </View>

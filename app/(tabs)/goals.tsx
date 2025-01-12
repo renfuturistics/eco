@@ -1,10 +1,28 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, SafeAreaView, ScrollView, Platform, StatusBar } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  SafeAreaView,
+  FlatList,
+  Platform,
+  StatusBar,
+} from "react-native";
 import CreateGoalsWithDates from "../../components/CreateGoals";
 import GoalsList from "../../components/goalList";
 
 const GoalsTabScreen = () => {
-  const [activeTab, setActiveTab] = useState<"Create Goal" | "Goals List">("Create Goal");
+  const [activeTab, setActiveTab] = useState<"Create Goal" | "Goals List">(
+    "Create Goal"
+  );
+
+  const renderTabContent = () => {
+    if (activeTab === "Create Goal") {
+      return <CreateGoalsWithDates />;
+    } else {
+      return <GoalsList />;
+    }
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-gray-900">
@@ -44,13 +62,15 @@ const GoalsTabScreen = () => {
       </View>
 
       {/* Tab Content */}
-      <ScrollView className="flex-1 p-4">
-        {activeTab === "Create Goal" ? (
-          <CreateGoalsWithDates />
-        ) : (
-          <GoalsList />
+      <FlatList
+        data={[{ key: "tabContent" }]}
+        keyExtractor={(item) => item.key}
+        renderItem={() => (
+          <View className="p-4 flex-1">
+            {renderTabContent()}
+          </View>
         )}
-      </ScrollView>
+      />
     </SafeAreaView>
   );
 };
