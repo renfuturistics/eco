@@ -97,7 +97,8 @@ const TabsLayout = () => {
             headerShown: false,
             tabBarIcon: ({ color, focused }) => (
               <TabIcon
-                icon={icons.plus}
+              
+                icon={icons.list}
                 color={color}
                 name="goals"
                 focused={focused}

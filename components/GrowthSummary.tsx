@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ActivityIndicator, SafeAreaView } from "react-native";
+import { View, Text, ActivityIndicator, SafeAreaView, ScrollView } from "react-native";
 import { ProgressBar } from "react-native-paper";
 import { fetchGrowthSummary } from "../lib/appwrite";
 import { useGlobalContext } from "../context/GlobalProvider";
+import { Ionicons } from "@expo/vector-icons";
 
 const GrowthSummary = () => {
   const { user } = useGlobalContext();
@@ -30,7 +31,7 @@ const GrowthSummary = () => {
     return (
       <SafeAreaView className="flex-1 bg-gray-900 items-center justify-center p-4">
         <ActivityIndicator size="large" color="#FF9001" />
-        <Text className="text-white mt-4">Loading Growth Summary...</Text>
+        <Text className="text-orange-400 mt-4 text-lg">Loading Growth Summary...</Text>
       </SafeAreaView>
     );
   }
@@ -38,7 +39,7 @@ const GrowthSummary = () => {
   if (!growthSummary) {
     return (
       <SafeAreaView className="flex-1 bg-gray-900 items-center justify-center p-4">
-        <Text className="text-red-400 text-center">
+        <Text className="text-red-500 text-lg text-center">
           No growth summary found.
         </Text>
       </SafeAreaView>
@@ -46,55 +47,65 @@ const GrowthSummary = () => {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-900 p-2">
-      <Text className="text-white text-2xl font-bold mb-6">Your Growth Summary</Text>
-
-      <View className="bg-gray-800 p-4 rounded-lg mb-4">
-        <Text className="text-gray-400 text-sm">Courses Completed</Text>
-        <Text className="text-white text-lg font-bold mt-1">
-          {growthSummary.totalCoursesCompleted}
+    <SafeAreaView className="flex-1 bg-gray-900 p-4">
+      <ScrollView>
+        <Text className="text-white text-3xl font-bold mb-6 text-center">
+          Your Growth Summary
         </Text>
-      </View>
 
-      <View className="bg-gray-800 p-4 rounded-lg mb-4">
-        <Text className="text-gray-400 text-sm">Lessons Completed</Text>
-        <Text className="text-white text-lg font-bold mt-1">
-          {growthSummary.totalLessonsCompleted}
-        </Text>
-        <ProgressBar
-          progress={growthSummary.totalLessonsCompleted / 100} // Assume 100 lessons as a goal
-          color="#FF9001"
-          className="h-2 mt-2"
-        />
-      </View>
+        <View className="bg-gray-800 rounded-lg p-6 mb-4 shadow-lg items-center">
+          <Ionicons name="school-outline" size={24} color="#FF9001" />
+          <Text className="text-gray-400 text-sm mt-2">Courses Completed</Text>
+          <Text className="text-white text-2xl font-bold mt-1">
+            {growthSummary.totalCoursesCompleted}
+          </Text>
+        </View>
 
-      <View className="bg-gray-800 p-4 rounded-lg mb-4">
-        <Text className="text-gray-400 text-sm">Time Spent Learning</Text>
-        <Text className="text-white text-lg font-bold mt-1">
-          {growthSummary.totalTimeSpent} hrs
-        </Text>
-      </View>
+        <View className="bg-gray-800 rounded-lg p-6 mb-4 shadow-lg items-center">
+          <Ionicons name="book-outline" size={24} color="#FF9001" />
+          <Text className="text-gray-400 text-sm mt-2">Lessons Completed</Text>
+          <Text className="text-white text-2xl font-bold mt-1">
+            {growthSummary.totalLessonsCompleted}
+          </Text>
+          <ProgressBar
+            progress={growthSummary.totalLessonsCompleted / 100} // Assume 100 lessons as a goal
+            color="#FF9001"
+            className="w-full h-2 mt-4 rounded-lg"
+          />
+        </View>
 
-      <View className="bg-gray-800 p-4 rounded-lg mb-4">
-        <Text className="text-gray-400 text-sm">Goals Completed</Text>
-        <Text className="text-white text-lg font-bold mt-1">
-          {growthSummary.goalsCompleted}
-        </Text>
-      </View>
+        <View className="bg-gray-800 rounded-lg p-6 mb-4 shadow-lg items-center">
+          <Ionicons name="time-outline" size={24} color="#FF9001" />
+          <Text className="text-gray-400 text-sm mt-2">Time Spent Learning</Text>
+          <Text className="text-white text-2xl font-bold mt-1">
+            {growthSummary.totalTimeSpent} hrs
+          </Text>
+        </View>
 
-      <View className="bg-gray-800 p-4 rounded-lg mb-4">
-        <Text className="text-gray-400 text-sm">Active Days</Text>
-        <Text className="text-white text-lg font-bold mt-1">
-          {growthSummary.daysActive}
-        </Text>
-      </View>
+        <View className="bg-gray-800 rounded-lg p-6 mb-4 shadow-lg items-center">
+          <Ionicons name="trophy-outline" size={24} color="#FF9001" />
+          <Text className="text-gray-400 text-sm mt-2">Goals Completed</Text>
+          <Text className="text-white text-2xl font-bold mt-1">
+            {growthSummary.goalsCompleted}
+          </Text>
+        </View>
 
-      <View className="bg-gray-800 p-4 rounded-lg">
-        <Text className="text-gray-400 text-sm">Last Activity</Text>
-        <Text className="text-white text-lg font-bold mt-1">
-          {new Date(growthSummary.lastActivityDate).toDateString()}
-        </Text>
-      </View>
+        <View className="bg-gray-800 rounded-lg p-6 mb-4 shadow-lg items-center">
+          <Ionicons name="calendar-outline" size={24} color="#FF9001" />
+          <Text className="text-gray-400 text-sm mt-2">Active Days</Text>
+          <Text className="text-white text-2xl font-bold mt-1">
+            {growthSummary.daysActive}
+          </Text>
+        </View>
+
+        <View className="bg-gray-800 rounded-lg p-6 shadow-lg items-center">
+          <Ionicons name="time-outline" size={24} color="#FF9001" />
+          <Text className="text-gray-400 text-sm mt-2">Last Activity</Text>
+          <Text className="text-white text-2xl font-bold mt-1">
+            {new Date(growthSummary.lastActivityDate).toDateString()}
+          </Text>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };

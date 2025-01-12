@@ -12,7 +12,9 @@ import eyeHide from "../assets/icons/eye-hide.png";
 import eye from "../assets/icons/eye.png";
 import play from "../assets/icons/play.png";
 import popular from '../assets/icons/popular.png'
+import pin from "../assets/icons/pin.png"
 import audios from "../assets/icons/audios.png";
+import list from "../assets/icons/list.png"
 export default {
   play,
   bookmark,
@@ -22,6 +24,8 @@ export default {
   leftArrow,
   menu,
   search,
+  list,
+  pin,
   upload,
   rightArrow,
   logout,
