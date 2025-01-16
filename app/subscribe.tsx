@@ -12,6 +12,7 @@ import { createSubscription } from "../lib/appwrite";
 import PageHeader from "../components/PageHeader";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
+import { SafeAreaView } from "react-native-safe-area-context";
 // Loading Indicator Component
 const LoadingIndicator = ({ message }: { message: string }) => (
   <View className="flex justify-center items-center h-full">
@@ -119,7 +120,7 @@ const SubscriptionPage = () => {
   };
 
   return (
-    <View className="bg-primary flex-1">
+    <SafeAreaView className="bg-primary flex-1">
 
       <View className="flex-1 px-3 justify-start items-center py-8">
         {/* Informational Text */}
@@ -173,7 +174,7 @@ const SubscriptionPage = () => {
           <Text className="text-red-500 text-center mt-6 text-sm">{error}</Text>
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 

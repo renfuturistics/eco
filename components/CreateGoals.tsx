@@ -16,7 +16,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useGlobalContext } from "../context/GlobalProvider";
 import { createGoal } from "../lib/appwrite";
 import CustomButton from "./CustomButton";
-
+import AntDesign from "@expo/vector-icons/AntDesign";
 interface Milestone {
   id: string;
   title: string;
@@ -32,7 +32,7 @@ const CreateGoalsWithDates = () => {
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
   const { user } = useGlobalContext();
-
+const [loading,setLoading]= useState(false)
   const addMilestone = () => {
     if (milestoneInput.trim().length === 0) {
       Alert.alert("Error", "Milestone title cannot be empty");
@@ -53,15 +53,19 @@ const CreateGoalsWithDates = () => {
   };
 
   const saveGoal = async () => {
+    setLoading(true)
     if (goalTitle.trim().length === 0) {
+      setLoading(false)
       Alert.alert("Error", "Goal title cannot be empty");
       return;
     }
     if (!startDate || !endDate) {
+      setLoading(false)
       Alert.alert("Error", "Please select start and end dates");
       return;
     }
     if (endDate <= startDate) {
+      setLoading(false)
       Alert.alert("Error", "End date must be after the start date");
       return;
     }
@@ -95,10 +99,16 @@ const CreateGoalsWithDates = () => {
     } catch (error) {
       console.error("Error saving goal:", error);
       Alert.alert("Error", "Failed to save the goal. Please try again.");
+    }finally{
+      setLoading(false)
     }
   };
 
-  const handleDateChange = (event: any, selectedDate: Date | undefined, type: "start" | "end") => {
+  const handleDateChange = (
+    event: any,
+    selectedDate: Date | undefined,
+    type: "start" | "end"
+  ) => {
     if (type === "start") {
       setShowStartPicker(false);
       if (selectedDate) setStartDate(selectedDate);
@@ -122,105 +132,137 @@ const CreateGoalsWithDates = () => {
 
   return (
     <KeyboardAvoidingView
-    style={{ flex: 1 }}
-    behavior={Platform.OS === "ios" ? "padding" : undefined}
-  >
-    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-    <SafeAreaView className="flex-1 bg-gray-900">
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <SafeAreaView className="flex-1 bg-gray-900">
+          <View className="p-2">
+            <Text className="text-lg font-semibold text-white mb-2">
+              Goal Title
+            </Text>
+            <TextInput
+              className="bg-gray-800 text-white p-4 rounded-lg h-14 mb-4"
+              placeholder="Enter Goal Title"
+              placeholderTextColor="#B3B3B3"
+              value={goalTitle}
+              onChangeText={setGoalTitle}
+            />
 
-      <View className="p-2">
-        <Text className="text-lg font-semibold text-white mb-2">Goal Title</Text>
-        <TextInput
-          className="bg-gray-800 text-white p-4 rounded-lg h-14 mb-4"
-          placeholder="Enter Goal Title"
-          placeholderTextColor="#B3B3B3"
-          value={goalTitle}
-          onChangeText={setGoalTitle}
-        />
+            <Text className="text-lg font-semibold text-white mb-2">
+              Description
+            </Text>
+            <TextInput
+              className="bg-gray-800 text-white p-4 rounded-lg h-20 mb-4"
+              placeholder="Add a description..."
+              placeholderTextColor="#888"
+              value={goalDescription}
+              onChangeText={setGoalDescription}
+              multiline
+            />
 
-        <Text className="text-lg font-semibold text-white mb-2">Description</Text>
-        <TextInput
-          className="bg-gray-800 text-white p-4 rounded-lg h-20 mb-4"
-          placeholder="Add a description..."
-          placeholderTextColor="#888"
-          value={goalDescription}
-          onChangeText={setGoalDescription}
-          multiline
-        />
+            <Text className="text-lg font-semibold text-white mb-2">
+              Start Date
+            </Text>
+            <TouchableOpacity
+              onPress={() => setShowStartPicker(true)}
+              className="flex-row bg-gray-800 p-4 rounded-lg mb-4"
+            >
+              <Text className="text-white flex-1">
+                {startDate
+                  ? `Start Date: ${startDate.toDateString()}`
+                  : "Select Start Date"}
+              </Text>
+              <AntDesign
+                name="calendar"
+                size={20}
+                color="white"
+                style={{ marginLeft: 8 }} // Add margin to the left of the icon
+              />
+            </TouchableOpacity>
 
-        <Text className="text-lg font-semibold text-white mb-2">Start Date</Text>
-        <TouchableOpacity
-          onPress={() => setShowStartPicker(true)}
-          className="bg-gray-800 p-4 rounded-lg mb-4"
-        >
-          <Text className="text-white">
-            {startDate ? `Start Date: ${startDate.toDateString()}` : "Select Start Date"}
-          </Text>
-        </TouchableOpacity>
+            <Text className="text-lg font-semibold text-white mb-2">
+              End Date
+            </Text>
+            <TouchableOpacity
+              onPress={() => setShowEndPicker(true)}
+              className="flex-row bg-gray-800 p-4 rounded-lg mb-4"
+            >
+              <Text className="text-white flex-1">
+                {endDate
+                  ? `End Date: ${endDate.toDateString()}`
+                  : "Select End Date"}
+              </Text>
+              <AntDesign
+                name="calendar"
+                size={20}
+                color="white"
+                style={{ marginLeft: 8 }} // Add margin to the left of the icon
+              />
+            </TouchableOpacity>
 
-        <Text className="text-lg font-semibold text-white mb-2">End Date</Text>
-        <TouchableOpacity
-          onPress={() => setShowEndPicker(true)}
-          className="bg-gray-800 p-4 rounded-lg mb-4"
-        >
-          <Text className="text-white">
-            {endDate ? `End Date: ${endDate.toDateString()}` : "Select End Date"}
-          </Text>
-        </TouchableOpacity>
+            {showStartPicker && (
+              <DateTimePicker
+                value={startDate || new Date()}
+                mode="date"
+                display="default"
+                onChange={(event, selectedDate) =>
+                  handleDateChange(event, selectedDate, "start")
+                }
+              />
+            )}
 
-        {showStartPicker && (
-          <DateTimePicker
-            value={startDate || new Date()}
-            mode="date"
-            display="default"
-            onChange={(event, selectedDate) => handleDateChange(event, selectedDate, "start")}
-          />
-        )}
+            {showEndPicker && (
+              <DateTimePicker
+                value={endDate || new Date()}
+                mode="date"
+                display="default"
+                onChange={(event, selectedDate) =>
+                  handleDateChange(event, selectedDate, "end")
+                }
+              />
+            )}
 
-        {showEndPicker && (
-          <DateTimePicker
-            value={endDate || new Date()}
-            mode="date"
-            display="default"
-            onChange={(event, selectedDate) => handleDateChange(event, selectedDate, "end")}
-          />
-        )}
+            <Text className="text-lg font-semibold text-white mb-2">
+              Milestones
+            </Text>
+            <View className="flex-row items-center mb-4">
+              <TextInput
+                className="flex-1 bg-gray-800 text-white p-4 rounded-lg mr-4"
+                placeholder="Milestone Title"
+                placeholderTextColor="#B3B3B3"
+                value={milestoneInput}
+                onChangeText={setMilestoneInput}
+              />
+              <TouchableOpacity
+                onPress={addMilestone}
+                className=" bg-secondary py-3 px-5 rounded-lg"
+              >
+                <Text className="text-white font-semibold">Add</Text>
+              </TouchableOpacity>
+            </View>
 
-        <Text className="text-lg font-semibold text-white mb-2">Milestones</Text>
-        <View className="flex-row items-center mb-4">
-          <TextInput
-            className="flex-1 bg-gray-800 text-white p-4 rounded-lg mr-4"
-            placeholder="Milestone Title"
-            placeholderTextColor="#B3B3B3"
-            value={milestoneInput}
-            onChangeText={setMilestoneInput}
-          />
-          <TouchableOpacity
-            onPress={addMilestone}
-            className=" bg-secondary py-3 px-5 rounded-lg"
-          >
-            <Text className="text-white font-semibold">Add</Text>
-          </TouchableOpacity>
-        </View>
+            <FlatList
+              data={milestones}
+              keyExtractor={(item) => item.id}
+              renderItem={renderItem}
+              ListEmptyComponent={
+                <Text className="text-gray-500 text-center">
+                  No milestones added yet.
+                </Text>
+              }
+            />
 
-        <FlatList
-          data={milestones}
-          keyExtractor={(item) => item.id}
-          renderItem={renderItem}
-          ListEmptyComponent={
-            <Text className="text-gray-500 text-center">No milestones added yet.</Text>
-          }
-        />
-
-        <CustomButton
-          title="Save Goal"
-          handlePress={saveGoal}
-          containerStyles="mt-6 bg-primary py-4 rounded-lg"
-          textStyles="text-white text-lg font-bold"
-        />
-      </View>
-    </SafeAreaView>
-    </TouchableWithoutFeedback>
+            <CustomButton
+              title="Save Goal"
+              isLoading={loading}
+              handlePress={saveGoal}
+              containerStyles="mt-6 bg-primary py-4 rounded-lg"
+              textStyles="text-white text-lg font-bold"
+            />
+          </View>
+        </SafeAreaView>
+      </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
 };

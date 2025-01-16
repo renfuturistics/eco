@@ -6,6 +6,7 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  SafeAreaView,
   StatusBar,
   Text,
   TextInput,
@@ -99,6 +100,7 @@ const RepliesPage = () => {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={{ flex: 1, backgroundColor: "#1a1a2e" }}
     >
+      <SafeAreaView>
       <Stack.Screen options={{ headerShown: false }} />
       {/* Back Button */}
       <PageHeader title="Replies" />
@@ -164,6 +166,8 @@ const RepliesPage = () => {
           </TouchableOpacity>
         </View>
       </View>
+      </SafeAreaView>
+      
     </KeyboardAvoidingView>
   );
 };

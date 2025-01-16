@@ -7,6 +7,7 @@ import {
   Image,
   ScrollView,
   ActivityIndicator,
+  SafeAreaView,
 } from "react-native";
 import { getConversationsWithUnreadCounts , getUserDetails } from "../lib/appwrite";
 import { router } from "expo-router";
@@ -140,7 +141,7 @@ const InboxScreen = () => {
   
 
   return (
-    <View className="bg-primary h-full px-4">
+    <SafeAreaView className="bg-primary h-full px-4">
       <PageHeader title="Inbox" />
       {isLoading ? (
         <View className="flex-1 justify-center items-center">
@@ -167,7 +168,7 @@ const InboxScreen = () => {
       )}
       </>)}
 
-    </View>
+    </SafeAreaView>
   );
 };
 

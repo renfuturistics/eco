@@ -12,7 +12,7 @@ import {
 import { Audio } from "expo-av";
 import Slider from "@react-native-community/slider";
 import { Ionicons, FontAwesome } from "@expo/vector-icons";
-import { Stack, useNavigation } from "expo-router";
+import { Stack, useLocalSearchParams, useNavigation } from "expo-router";
 import * as Notifications from "expo-notifications";
 import { InterruptionModeIOS, InterruptionModeAndroid } from "expo-av";
 import { DeviceEventEmitter } from "react-native"; // For boot event
@@ -26,6 +26,8 @@ const samplePodcastData = {
 
 let currentlyPlayingSound: Audio.Sound | null = null;
 import * as MediaLibrary from "expo-media-library";
+import { handleVideoCompletion } from "../../lib/appwrite";
+import { useGlobalContext } from "../../context/GlobalProvider";
 const AudioPlayer = () => {
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -33,54 +35,70 @@ const AudioPlayer = () => {
   const [durationMillis, setDurationMillis] = useState(0);
   const navigation = useNavigation();
   const screenWidth = Dimensions.get("window").width;
+  const params = useLocalSearchParams();
+  const url = params.url as string; // The video/audio URL
+  const courseId = params.courseId as string; // The course ID
+  const lessonId = params.lessonId as string
+  const { user } = useGlobalContext();
 
-  useEffect(() => {
-    const loadSound = async () => {
-      // Configure the audio session for background playback
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        staysActiveInBackground: true, // Keeps playback active in the background
-        playsInSilentModeIOS: true, // Plays even if the device is in silent mode
-        interruptionModeIOS: InterruptionModeIOS.MixWithOthers,
-        interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
-        shouldDuckAndroid: true,
-        playThroughEarpieceAndroid: false,
-      });
+  const userId = user.Id;
 
-      if (currentlyPlayingSound) {
-        await currentlyPlayingSound.pauseAsync();
-        await currentlyPlayingSound.unloadAsync();
-      }
-
-      const { sound: newSound } = await Audio.Sound.createAsync(
-        samplePodcastData.audioUri,
-        { shouldPlay: true, isLooping: false } // Start playing immediately
-      );
-
-      setSound(newSound);
-      currentlyPlayingSound = newSound;
-
-      const status = await newSound.getStatusAsync();
-      if (status.isLoaded && status.durationMillis) {
-        setDurationMillis(status.durationMillis);
-      }
-
-      // Listen to playback status updates for UI updates
-      newSound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded) {
-          setPositionMillis(status.positionMillis);
-          setIsPlaying(status.isPlaying);
-        }
-      });
-    };
-
-    loadSound();
-
-    return () => {
-      sound?.unloadAsync();
-      if (currentlyPlayingSound === sound) currentlyPlayingSound = null;
-    };
-  }, []);
+  const audioCompletion = () => {
+    handleVideoCompletion(userId,courseId,lessonId)
+      };
+      useEffect(() => {
+        const loadSound = async () => {
+          await Audio.setAudioModeAsync({
+            allowsRecordingIOS: false,
+            staysActiveInBackground: true,
+            playsInSilentModeIOS: true,
+            interruptionModeIOS: InterruptionModeIOS.MixWithOthers,
+            interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+            shouldDuckAndroid: true,
+            playThroughEarpieceAndroid: false,
+          });
+      
+          if (currentlyPlayingSound) {
+            await currentlyPlayingSound.pauseAsync();
+            await currentlyPlayingSound.unloadAsync();
+          }
+      
+          const { sound: newSound } = await Audio.Sound.createAsync(
+            samplePodcastData.audioUri,
+            { shouldPlay: true, isLooping: false }
+          );
+      
+          setSound(newSound);
+          currentlyPlayingSound = newSound;
+      
+          const status = await newSound.getStatusAsync();
+          if (status.isLoaded && status.durationMillis) {
+            setDurationMillis(status.durationMillis);
+          }
+      
+          // Listen for playback status updates
+          newSound.setOnPlaybackStatusUpdate((status) => {
+            if (status.isLoaded) {
+              setPositionMillis(status.positionMillis);
+              setIsPlaying(status.isPlaying);
+      
+              // Detect when the audio finishes
+              if (status.didJustFinish) {
+                console.log("Audio finished playing");
+              audioCompletion(); // Call your completion function here
+              }
+            }
+          });
+        };
+      
+        loadSound();
+      
+        return () => {
+          sound?.unloadAsync();
+          if (currentlyPlayingSound === sound) currentlyPlayingSound = null;
+        };
+      }, []);
+      
 
   const handlePlayPause = async () => {
     if (isPlaying) {

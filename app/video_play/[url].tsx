@@ -41,6 +41,7 @@ const VideoPlay = () => {
 handleVideoCompletion(userId,courseId,lessonId)
   };
 
+  
   const togglePlayback = () => {
     if (status?.isLoaded) {
       if (status.isPlaying) {
