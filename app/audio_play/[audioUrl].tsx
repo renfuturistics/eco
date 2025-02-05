@@ -25,8 +25,8 @@ const samplePodcastData = {
 };
 
 let currentlyPlayingSound: Audio.Sound | null = null;
-import * as MediaLibrary from "expo-media-library";
-import { handleVideoCompletion } from "../../lib/appwrite";
+
+import { handleVideoCompletion,getLessonById } from "../../lib/appwrite";
 import { useGlobalContext } from "../../context/GlobalProvider";
 const AudioPlayer = () => {
   const [sound, setSound] = useState<Audio.Sound | null>(null);
@@ -34,71 +34,80 @@ const AudioPlayer = () => {
   const [positionMillis, setPositionMillis] = useState(0);
   const [durationMillis, setDurationMillis] = useState(0);
   const navigation = useNavigation();
-  const screenWidth = Dimensions.get("window").width;
+  const [lessonData, setLessonData] = useState<any>(null);
   const params = useLocalSearchParams();
-  const url = params.url as string; // The video/audio URL
+  const url = params.audioUrl as string; // The video/audio URL
   const courseId = params.courseId as string; // The course ID
-  const lessonId = params.lessonId as string
+  const lessonId = params.lessonId as string;
   const { user } = useGlobalContext();
 
   const userId = user.Id;
 
   const audioCompletion = () => {
-    handleVideoCompletion(userId,courseId,lessonId)
-      };
-      useEffect(() => {
-        const loadSound = async () => {
-          await Audio.setAudioModeAsync({
-            allowsRecordingIOS: false,
-            staysActiveInBackground: true,
-            playsInSilentModeIOS: true,
-            interruptionModeIOS: InterruptionModeIOS.MixWithOthers,
-            interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
-            shouldDuckAndroid: true,
-            playThroughEarpieceAndroid: false,
-          });
-      
-          if (currentlyPlayingSound) {
-            await currentlyPlayingSound.pauseAsync();
-            await currentlyPlayingSound.unloadAsync();
-          }
-      
-          const { sound: newSound } = await Audio.Sound.createAsync(
-            samplePodcastData.audioUri,
-            { shouldPlay: true, isLooping: false }
-          );
-      
-          setSound(newSound);
-          currentlyPlayingSound = newSound;
-      
-          const status = await newSound.getStatusAsync();
-          if (status.isLoaded && status.durationMillis) {
-            setDurationMillis(status.durationMillis);
-          }
-      
-          // Listen for playback status updates
-          newSound.setOnPlaybackStatusUpdate((status) => {
-            if (status.isLoaded) {
-              setPositionMillis(status.positionMillis);
-              setIsPlaying(status.isPlaying);
-      
-              // Detect when the audio finishes
-              if (status.didJustFinish) {
-                console.log("Audio finished playing");
+    handleVideoCompletion(userId, courseId, lessonId);
+  };
+  useEffect(() => {
+    const loadSound = async () => {
+      try {
+        // Set audio mode
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          staysActiveInBackground: true,
+          playsInSilentModeIOS: true,
+          interruptionModeIOS: InterruptionModeIOS.MixWithOthers,
+          interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+        });
+  
+        // Pause and unload the currently playing sound, if any
+        if (currentlyPlayingSound) {
+          await currentlyPlayingSound.pauseAsync();
+          await currentlyPlayingSound.unloadAsync();
+        }
+  
+        // Create a new sound instance
+        const { sound: newSound } = await Audio.Sound.createAsync(
+          { uri: url }, // Wrap the URL as an AVPlaybackSource
+          { shouldPlay: true, isLooping: false }
+        );
+  
+        setSound(newSound);
+        currentlyPlayingSound = newSound;
+  
+        // Get and set the duration of the audio
+        const status = await newSound.getStatusAsync();
+        if (status.isLoaded && status.durationMillis) {
+          setDurationMillis(status.durationMillis);
+        }
+  
+        // Listen for playback status updates
+        newSound.setOnPlaybackStatusUpdate((status) => {
+          if (status.isLoaded) {
+            setPositionMillis(status.positionMillis);
+            setIsPlaying(status.isPlaying);
+  
+            // Detect when the audio finishes
+            if (status.didJustFinish) {
+           
               audioCompletion(); // Call your completion function here
-              }
             }
-          });
-        };
-      
-        loadSound();
-      
-        return () => {
-          sound?.unloadAsync();
-          if (currentlyPlayingSound === sound) currentlyPlayingSound = null;
-        };
-      }, []);
-      
+          }
+        });
+      } catch (error) {
+        console.error("Error loading sound:", error);
+      }
+    };
+  
+    loadSound();
+  
+    return () => {
+      // Cleanup the sound when the component unmounts
+      sound?.unloadAsync();
+      if (currentlyPlayingSound === sound) currentlyPlayingSound = null;
+    };
+  }, []);
+  
 
   const handlePlayPause = async () => {
     if (isPlaying) {
@@ -197,44 +206,34 @@ const AudioPlayer = () => {
 
   return (
     <SafeAreaView
+      className="bg-gray-800"
       style={{
         flex: 1,
-        backgroundColor: "#1C1C1E",
+
         paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
       }}
     >
       <Stack.Screen options={{ headerShown: false }} />
-      <View style={{ flexDirection: "row", alignItems: "center", padding: 15 }}>
+      <View className="flex-row items-center p-4">
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={28} color="white" />
         </TouchableOpacity>
-        <Text style={{ color: "white", fontSize: 20, marginLeft: 15 }}>
-          Now Playing
-        </Text>
+        <Text className="text-white text-xl ml-4">Now Playing</Text>
       </View>
 
-      <View style={{ alignItems: "center", marginTop: 30 }}>
+      <View className="items-center mt-8">
         <Image
           source={samplePodcastData.thumbnail}
-          style={{
-            width: screenWidth * 0.8,
-            height: screenWidth * 0.8,
-            borderRadius: 15,
-            marginBottom: 20,
-          }}
+          className="w-[80vw] h-[80vw] rounded-lg mb-5"
         />
 
-        <Text style={{ fontSize: 24, color: "white", fontWeight: "bold" }}>
-          Lesson name
-        </Text>
-        <Text style={{ fontSize: 18, color: "#BBBBBB", marginBottom: 20 }}>
-          Teacher
-        </Text>
+        <Text className="text-2xl text-white font-bold">Lesson name</Text>
+        <Text className="text-lg text-gray-400 mb-5">Teacher</Text>
 
-        <View style={{ flexDirection: "row", alignItems: "center" }}>
-          <Text style={{ color: "white" }}>{formatTime(positionMillis)}</Text>
+        <View className="flex-row items-center w-[85vw]">
+          <Text className="text-white">{formatTime(positionMillis)}</Text>
           <Slider
-            style={{ width: screenWidth * 0.85 }}
+            style={{ width: "85%" }}
             minimumValue={0}
             maximumValue={durationMillis}
             value={positionMillis}
@@ -246,21 +245,21 @@ const AudioPlayer = () => {
             maximumTrackTintColor="#8E8E93"
             thumbTintColor="#FF9C01"
           />
-          <Text style={{ color: "white" }}>{formatTime(durationMillis)}</Text>
+          <Text className="text-white">{formatTime(durationMillis)}</Text>
         </View>
 
-        <View style={{ flexDirection: "row", marginTop: 20 }}>
-          <TouchableOpacity onPress={rewind} style={{ padding: 20 }}>
+        <View className="flex-row mt-5">
+          <TouchableOpacity onPress={rewind} className="p-5">
             <FontAwesome name="fast-backward" size={24} color="white" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handlePlayPause} style={{ padding: 20 }}>
+          <TouchableOpacity onPress={handlePlayPause} className="p-5">
             <Ionicons
               name={isPlaying ? "pause-circle" : "play-circle"}
               size={60}
               color="#FF9C01"
             />
           </TouchableOpacity>
-          <TouchableOpacity onPress={fastForward} style={{ padding: 20 }}>
+          <TouchableOpacity onPress={fastForward} className="p-5">
             <FontAwesome name="fast-forward" size={24} color="white" />
           </TouchableOpacity>
         </View>

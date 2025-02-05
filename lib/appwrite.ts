@@ -381,6 +381,20 @@ export const getLessonsForCourse = async (courseId: string) => {
     throw error; // Rethrow the error if you want to handle it elsewhere
   }
 };
+export const getLessonById = async (lessonId: string) => {
+  try {
+    const response = await databases.getDocument(
+      appwriteConfig.databaseId, // The database ID where lessons are stored
+      appwriteConfig.lessonsCollectionId, // The collection ID for lessons
+      lessonId // The document ID of the lesson
+    );
+
+    return response; // Return the lesson document
+  } catch (error: any) {
+    console.error("Error fetching lesson by ID:", error.message || error);
+    throw error; // Rethrow the error for handling elsewhere
+  }
+};
 // Function to create a new course
 export const createCourse = async (courseData: {
   title: string;
