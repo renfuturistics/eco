@@ -31,6 +31,8 @@ export const appwriteConfig = {
   subscriptionCollectionId: "6773c7bd000ca5f2a632",
   goalsCollectionId: "677f97ee0032852f9984",
   milestonesCollectionId: "677f98e9000c14099d12",
+  userSubcriptionsCollectionId: "67e40e8f0039f6ac23b6",
+  subcriptionPlansCollectionId: "67e40c630006fa4eefb0"
 };
 
 const client = new Client();
@@ -1524,7 +1526,7 @@ export const markMilestoneAsComplete = async (
       appwriteConfig.databaseId,
       appwriteConfig.milestonesCollectionId,
       milestoneId,
-      { isCompleted, completionDate:isCompleted?new Date() :null}
+      { isCompleted, completionDate: isCompleted ? new Date() : null }
     );
   } catch (error) {
     console.error("Error updating milestone:", error);
@@ -1571,7 +1573,7 @@ export const updateGoalProgress = async (
           growthSummaryId,
           {
             goalsCompleted: currentGoalsCompleted + 1,
-            lastActivityDate:new Date()
+            lastActivityDate: new Date()
           }
         );
       } else {
@@ -1607,3 +1609,80 @@ export const fetchGrowthSummary = async (userId: string) => {
     throw error;
   }
 };
+
+export async function subscribeToPlan(planId: string,
+  paymentMethod: string, paymentReference: string
+) {
+  try {
+    const user = await account.get();
+    if (!user) throw new Error("User not logged in");
+    const validUntil = new Date();
+    validUntil.setMonth(validUntil.getMonth() + 1);
+    await databases.createDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.subscriptionCollectionId,
+      ID.unique(),
+      {
+        userId: user.$id,
+        planId: planId,
+
+        startDate: Date.now(),
+        endDate: validUntil,
+        paymentMethod,
+        paymentReference
+      }
+    );
+
+    return true;
+  } catch (error) {
+    console.error("Error subscribing:", error);
+    return false;
+  }
+}
+export async function activateSubscription(subscriptionId: string) {
+  try {
+    // Fetch the subscription document using its ID
+    const subscription = await databases.getDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.subcriptionPlansCollectionId,
+      subscriptionId
+    );
+
+    if (!subscription) throw new Error("Subscription not found");
+
+    // Ensure the subscription is not already active
+    if (subscription.status === "Active") {
+      console.log("Subscription is already active.");
+      return true;
+    }
+
+    // Update the subscription status to 'active'
+    await databases.updateDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.subcriptionPlansCollectionId,
+      subscriptionId,
+      {
+        status: "Active",
+        // Optionally you can add any additional fields to update.
+      }
+    );
+
+    console.log("Subscription activated successfully.");
+    return true;
+  } catch (error) {
+    console.error("Error activating subscription:", error);
+    return false;
+  }
+}
+export async function getSubscriptionPlans() {
+  try {
+    const response = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.subcriptionPlansCollectionId
+    );
+    return response.documents; // Returns the list of subscription plans
+  } catch (error) {
+    console.error("Error fetching subscription plans:", error);
+    return [];
+  }
+}

@@ -292,7 +292,7 @@ const ProfilePage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#161622",
+    backgroundColor: "white",
   },
   loadingContainer: {
     flex: 1,
