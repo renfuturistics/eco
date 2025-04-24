@@ -1,29 +1,26 @@
-import { useState, useEffect, useRef } from "react";
 import {
-  SafeAreaView,
   View,
   Text,
   TouchableOpacity,
   Image,
   Platform,
+  SafeAreaView,
   StatusBar,
+  DeviceEventEmitter,
 } from "react-native";
 import { Ionicons, FontAwesome } from "@expo/vector-icons";
-import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from "expo-av";
-import { Stack, useNavigation } from "expo-router";
+import { useEffect, useState } from "react";
+import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
 import Slider from "@react-native-community/slider";
-
-import { useLocalSearchParams } from "expo-router"; // For handling route params
-
 import * as Notifications from "expo-notifications";
-import { DeviceEventEmitter } from "react-native";
+import { Stack, useNavigation, useLocalSearchParams } from "expo-router";
 import { useGlobalContext } from "../../context/GlobalProvider";
 import {
-  getLessonAndCourseByLessonId,
   handleVideoCompletion,
+  getLessonAndCourseByLessonId,
 } from "../../lib/appwrite";
 
-let currentlyPlayingSound: Audio.Sound | null = null; // Track current playing sound globally
+let currentlyPlayingSound: Audio.Sound | null = null;
 
 const AudioPlayer = () => {
   const [sound, setSound] = useState<Audio.Sound | null>(null);
@@ -36,18 +33,16 @@ const AudioPlayer = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const params = useLocalSearchParams();
-  const url = params.audioUrl as string; // The video/audio URL
-  const courseId = params.courseId as string; // The course ID
+  const url = params.audioUrl as string;
+  const courseId = params.courseId as string;
   const lessonId = params.lessonId as string;
   const { user } = useGlobalContext();
   const userId = user?.Id;
 
-  // Notify when audio completes
   const audioCompletion = () => {
     handleVideoCompletion(userId, courseId, lessonId);
   };
 
-  // Fetch lesson and course details
   useEffect(() => {
     if (!lessonId) return;
 
@@ -68,16 +63,7 @@ const AudioPlayer = () => {
     fetchLessonAndCourse();
   }, [lessonId]);
 
-  // Early return loading state
-
-  // Handle playback: load sound, control play/pause, etc.
-  const currentAudioUrlRef = useRef<string | null>(null);
-
   useEffect(() => {
-    if (loading || !url) return;
-
-    let isCancelled = false;
-
     const loadSound = async () => {
       try {
         await Audio.setAudioModeAsync({
@@ -90,13 +76,9 @@ const AudioPlayer = () => {
           playThroughEarpieceAndroid: false,
         });
 
-        // Prevent reloading if already playing this URL
-        if (currentAudioUrlRef.current === url) return;
-
         if (currentlyPlayingSound) {
           await currentlyPlayingSound.pauseAsync();
           await currentlyPlayingSound.unloadAsync();
-          currentlyPlayingSound = null;
         }
 
         const { sound: newSound } = await Audio.Sound.createAsync(
@@ -104,14 +86,8 @@ const AudioPlayer = () => {
           { shouldPlay: true, isLooping: false }
         );
 
-        if (isCancelled) {
-          await newSound.unloadAsync();
-          return;
-        }
-
         setSound(newSound);
         currentlyPlayingSound = newSound;
-        currentAudioUrlRef.current = url; // update the reference
 
         const status = await newSound.getStatusAsync();
         if (status.isLoaded && status.durationMillis) {
@@ -122,13 +98,13 @@ const AudioPlayer = () => {
           if (status.isLoaded) {
             setPositionMillis(status.positionMillis);
             setIsPlaying(status.isPlaying);
-
             if (status.didJustFinish) {
               audioCompletion();
-              currentAudioUrlRef.current = null; // reset after finish
             }
           }
         });
+
+        scheduleNotification();
       } catch (error) {
         console.error("Error loading sound:", error);
       }
@@ -137,13 +113,11 @@ const AudioPlayer = () => {
     loadSound();
 
     return () => {
-      isCancelled = true;
       sound?.unloadAsync();
       if (currentlyPlayingSound === sound) currentlyPlayingSound = null;
     };
-  }, [loading, url]);
+  }, [url]);
 
-  // Play or pause the sound
   const handlePlayPause = async () => {
     if (isPlaying) {
       await sound?.pauseAsync();
@@ -153,21 +127,18 @@ const AudioPlayer = () => {
     setIsPlaying(!isPlaying);
   };
 
-  // Rewind by 15 seconds
   const rewind = async () => {
     const newPosition = Math.max(positionMillis - 15000, 0);
     await sound?.setPositionAsync(newPosition);
     setPositionMillis(newPosition);
   };
 
-  // Fast forward by 15 seconds
   const fastForward = async () => {
     const newPosition = Math.min(positionMillis + 15000, durationMillis);
     await sound?.setPositionAsync(newPosition);
     setPositionMillis(newPosition);
   };
 
-  // Update position every second
   useEffect(() => {
     const interval = setInterval(async () => {
       const status = await sound?.getStatusAsync();
@@ -179,7 +150,6 @@ const AudioPlayer = () => {
     return () => clearInterval(interval);
   }, [sound]);
 
-  // Request notification permissions and create notification channel
   const requestNotificationPermissions = async () => {
     const { status: existingStatus } =
       await Notifications.getPermissionsAsync();
@@ -194,29 +164,36 @@ const AudioPlayer = () => {
   };
 
   const createNotificationChannel = async () => {
-    await Notifications.setNotificationChannelAsync("default", {
-      name: "default",
-      importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#FF231F7C",
-    });
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "default",
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#FF231F7C",
+      });
+    }
   };
 
   const scheduleNotification = async () => {
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: "Background Audio is playing",
-        body: "Tap to open the audio player",
+        title: "Background Audio",
+        body: "Audio is playing in the background. Tap to open.",
+        sound: undefined,
+        priority: Notifications.AndroidNotificationPriority.HIGH,
       },
       trigger: {
-        type: "timeInterval",
         seconds: 5,
         repeats: true,
-      } as Notifications.TimeIntervalTriggerInput, // 👈 This is key
+      } as Notifications.TimeIntervalTriggerInput,
     });
   };
 
-  // Handle device reboot
+  useEffect(() => {
+    requestNotificationPermissions();
+    createNotificationChannel();
+  }, []);
+
   useEffect(() => {
     if (Platform.OS === "android") {
       DeviceEventEmitter.addListener(
@@ -227,7 +204,6 @@ const AudioPlayer = () => {
       );
     }
 
-    // Cleanup the event listener when the component unmounts
     return () => {
       if (Platform.OS === "android") {
         DeviceEventEmitter.removeAllListeners(
@@ -237,11 +213,6 @@ const AudioPlayer = () => {
     };
   }, []);
 
-  useEffect(() => {
-    // Request permissions and create notification channel on mount
-    requestNotificationPermissions();
-    createNotificationChannel();
-  }, []);
   if (loading) {
     return (
       <SafeAreaView className="bg-gray-800 flex-1 items-center justify-center">
@@ -249,6 +220,7 @@ const AudioPlayer = () => {
       </SafeAreaView>
     );
   }
+
   return (
     <SafeAreaView
       className="bg-gray-800"
@@ -258,8 +230,6 @@ const AudioPlayer = () => {
       }}
     >
       <Stack.Screen options={{ headerShown: false }} />
-
-      {/* Header */}
       <View className="flex-row items-center p-4">
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={28} color="white" />
@@ -267,7 +237,6 @@ const AudioPlayer = () => {
         <Text className="text-white text-xl ml-4">Now Playing</Text>
       </View>
 
-      {/* Content */}
       <View className="items-center mt-8">
         <Image
           source={{
@@ -282,7 +251,6 @@ const AudioPlayer = () => {
           {courseData?.instructor || "Unknown Instructor"}
         </Text>
 
-        {/* Slider */}
         <View className="flex-row items-center w-[85vw]">
           <Text className="text-white">{formatTime(positionMillis)}</Text>
           <Slider
@@ -297,10 +265,10 @@ const AudioPlayer = () => {
             minimumTrackTintColor="#FF9C01"
             maximumTrackTintColor="#8E8E93"
             thumbTintColor="#FF9C01"
-          />{" "}
-          <Text className="text-white">{formatTime(durationMillis)}</Text>{" "}
+          />
+          <Text className="text-white">{formatTime(durationMillis)}</Text>
         </View>
-        {/* Controls */}
+
         <View className="flex-row items-center justify-between w-[60vw] mt-5">
           <TouchableOpacity onPress={rewind}>
             <FontAwesome name="backward" size={30} color="white" />
@@ -320,6 +288,7 @@ const AudioPlayer = () => {
     </SafeAreaView>
   );
 };
+
 const formatTime = (millis: number) => {
   const totalSeconds = Math.floor(millis / 1000);
   const minutes = Math.floor(totalSeconds / 60);
