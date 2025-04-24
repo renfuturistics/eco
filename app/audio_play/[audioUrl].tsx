@@ -1,29 +1,31 @@
+import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
+import * as Notifications from "expo-notifications";
 import {
-  View,
-  Text,
-  TouchableOpacity,
+  DeviceEventEmitter,
   Image,
+  InteractionManager,
   Platform,
   SafeAreaView,
   StatusBar,
-  DeviceEventEmitter,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { Ionicons, FontAwesome } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
-import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
+import { useEffect, useRef, useState } from "react";
 import Slider from "@react-native-community/slider";
-import * as Notifications from "expo-notifications";
-import { Stack, useNavigation, useLocalSearchParams } from "expo-router";
+import { FontAwesome, Ionicons } from "@expo/vector-icons";
+import { Stack, useNavigation } from "expo-router";
+import { useLocalSearchParams } from "expo-router";
 import { useGlobalContext } from "../../context/GlobalProvider";
 import {
   handleVideoCompletion,
   getLessonAndCourseByLessonId,
 } from "../../lib/appwrite";
 
-let currentlyPlayingSound: Audio.Sound | null = null;
+let currentlyPlayingSound: Audio.Sound | null = null; // Track current playing sound globally
 
 const AudioPlayer = () => {
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
+  const soundRef = useRef<Audio.Sound | null>(null); // ✅ useRef instead of useState
   const [isPlaying, setIsPlaying] = useState(false);
   const [positionMillis, setPositionMillis] = useState(0);
   const [durationMillis, setDurationMillis] = useState(0);
@@ -81,30 +83,32 @@ const AudioPlayer = () => {
           await currentlyPlayingSound.unloadAsync();
         }
 
-        const { sound: newSound } = await Audio.Sound.createAsync(
+        const { sound } = await Audio.Sound.createAsync(
           { uri: url },
           { shouldPlay: true, isLooping: false }
         );
 
-        setSound(newSound);
-        currentlyPlayingSound = newSound;
+        soundRef.current = sound;
+        currentlyPlayingSound = sound;
 
-        const status = await newSound.getStatusAsync();
+        const status = await sound.getStatusAsync();
         if (status.isLoaded && status.durationMillis) {
           setDurationMillis(status.durationMillis);
         }
-
-        newSound.setOnPlaybackStatusUpdate((status) => {
-          if (status.isLoaded) {
-            setPositionMillis(status.positionMillis);
-            setIsPlaying(status.isPlaying);
-            if (status.didJustFinish) {
-              audioCompletion();
+        sound.setOnPlaybackStatusUpdate((status) => {
+          InteractionManager.runAfterInteractions(() => {
+            try {
+              if (!status.isLoaded) return;
+              setPositionMillis(status.positionMillis);
+              setIsPlaying(status.isPlaying);
+              if (status.didJustFinish) {
+                audioCompletion();
+              }
+            } catch (e) {
+              console.warn("Playback status update error:", e);
             }
-          }
+          });
         });
-
-        scheduleNotification();
       } catch (error) {
         console.error("Error loading sound:", error);
       }
@@ -113,42 +117,67 @@ const AudioPlayer = () => {
     loadSound();
 
     return () => {
-      sound?.unloadAsync();
-      if (currentlyPlayingSound === sound) currentlyPlayingSound = null;
+      soundRef.current?.unloadAsync();
+      if (currentlyPlayingSound === soundRef.current)
+        currentlyPlayingSound = null;
     };
   }, [url]);
 
   const handlePlayPause = async () => {
-    if (isPlaying) {
-      await sound?.pauseAsync();
-    } else {
-      await sound?.playAsync();
+    const sound = soundRef.current;
+    if (!sound) return;
+
+    try {
+      if (isPlaying) {
+        await sound.pauseAsync();
+      } else {
+        await sound.playAsync();
+      }
+      setIsPlaying(!isPlaying);
+    } catch (e) {
+      console.error("Play/Pause Error:", e);
     }
-    setIsPlaying(!isPlaying);
   };
 
   const rewind = async () => {
     const newPosition = Math.max(positionMillis - 15000, 0);
-    await sound?.setPositionAsync(newPosition);
-    setPositionMillis(newPosition);
+    try {
+      await soundRef.current?.setPositionAsync(newPosition);
+      setPositionMillis(newPosition);
+    } catch (e) {
+      console.error("Rewind Error:", e);
+    }
   };
 
   const fastForward = async () => {
     const newPosition = Math.min(positionMillis + 15000, durationMillis);
-    await sound?.setPositionAsync(newPosition);
-    setPositionMillis(newPosition);
+    try {
+      await soundRef.current?.setPositionAsync(newPosition);
+      setPositionMillis(newPosition);
+    } catch (e) {
+      console.error("FastForward Error:", e);
+    }
   };
 
   useEffect(() => {
-    const interval = setInterval(async () => {
-      const status = await sound?.getStatusAsync();
-      if (status?.isLoaded) {
-        setPositionMillis(status.positionMillis);
-      }
+    const interval = setInterval(() => {
+      const sound = soundRef.current;
+      if (!sound) return;
+
+      InteractionManager.runAfterInteractions(async () => {
+        try {
+          const status = await sound.getStatusAsync();
+          if (status?.isLoaded) {
+            setPositionMillis(status.positionMillis);
+          }
+        } catch (e) {
+          console.log("Interval status error:", e);
+        }
+      });
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [sound]);
+  }, []);
 
   const requestNotificationPermissions = async () => {
     const { status: existingStatus } =
@@ -164,35 +193,27 @@ const AudioPlayer = () => {
   };
 
   const createNotificationChannel = async () => {
-    if (Platform.OS === "android") {
-      await Notifications.setNotificationChannelAsync("default", {
-        name: "default",
-        importance: Notifications.AndroidImportance.HIGH,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: "#FF231F7C",
-      });
-    }
+    await Notifications.setNotificationChannelAsync("default", {
+      name: "default",
+      importance: Notifications.AndroidImportance.HIGH,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: "#FF231F7C",
+    });
   };
 
   const scheduleNotification = async () => {
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: "Background Audio",
-        body: "Audio is playing in the background. Tap to open.",
-        sound: undefined,
-        priority: Notifications.AndroidNotificationPriority.HIGH,
+        title: "Background Audio is playing",
+        body: "Tap to open the audio player",
       },
       trigger: {
+        type: "timeInterval",
         seconds: 5,
         repeats: true,
       } as Notifications.TimeIntervalTriggerInput,
     });
   };
-
-  useEffect(() => {
-    requestNotificationPermissions();
-    createNotificationChannel();
-  }, []);
 
   useEffect(() => {
     if (Platform.OS === "android") {
@@ -211,6 +232,11 @@ const AudioPlayer = () => {
         );
       }
     };
+  }, []);
+
+  useEffect(() => {
+    requestNotificationPermissions();
+    createNotificationChannel();
   }, []);
 
   if (loading) {
@@ -238,12 +264,17 @@ const AudioPlayer = () => {
       </View>
 
       <View className="items-center mt-8">
-        <Image
-          source={{
-            uri: courseData?.thumbnail || "https://via.placeholder.com/300",
-          }}
-          className="w-[80vw] h-[80vw] rounded-lg mb-5"
-        />
+        {courseData?.thumbnail ? (
+          <Image
+            source={{ uri: courseData.thumbnail }}
+            className="w-[80vw] h-[80vw] rounded-lg mb-5"
+          />
+        ) : (
+          <View className="w-[80vw] h-[80vw] bg-gray-700 rounded-lg mb-5 items-center justify-center">
+            <Text className="text-black">No Thumbnail</Text>
+          </View>
+        )}
+
         <Text className="text-2xl text-white font-bold">
           {lessonData?.title || "Untitled Lesson"}
         </Text>
@@ -259,8 +290,12 @@ const AudioPlayer = () => {
             maximumValue={durationMillis}
             value={positionMillis}
             onSlidingComplete={async (value) => {
-              await sound?.setPositionAsync(value);
-              setPositionMillis(value);
+              try {
+                await soundRef.current?.setPositionAsync(value);
+                setPositionMillis(value);
+              } catch (e) {
+                console.log("Slider error:", e);
+              }
             }}
             minimumTrackTintColor="#FF9C01"
             maximumTrackTintColor="#8E8E93"
@@ -289,11 +324,11 @@ const AudioPlayer = () => {
   );
 };
 
+export default AudioPlayer;
+
 const formatTime = (millis: number) => {
   const totalSeconds = Math.floor(millis / 1000);
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`;
 };
-
-export default AudioPlayer;
