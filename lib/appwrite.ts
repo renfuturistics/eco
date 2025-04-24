@@ -32,7 +32,7 @@ export const appwriteConfig = {
   goalsCollectionId: "677f97ee0032852f9984",
   milestonesCollectionId: "677f98e9000c14099d12",
   userSubcriptionsCollectionId: "67e40e8f0039f6ac23b6",
-  subcriptionPlansCollectionId: "67e40c630006fa4eefb0"
+  subcriptionPlansCollectionId: "67e40c630006fa4eefb0",
 };
 
 const client = new Client();
@@ -314,12 +314,16 @@ export const getUserPoints = async (userId: string) => {
     throw error; // Rethrow the error if you want to handle it elsewhere
   }
 };
+
 export const getAllCourses = async () => {
   try {
     const response = await databases.listDocuments(
-      appwriteConfig.databaseId, // The database ID where courses are stored
+      appwriteConfig.databaseId,
       appwriteConfig.coursesCollectionId,
-      [Query.greaterThanEqual("lessons", 1)] // The collection ID for courses
+      [
+        Query.greaterThanEqual("lessons", 1),
+        Query.orderDesc("date"), // Sort by date in descending order
+      ]
     );
 
     const courses = response.documents;
@@ -328,12 +332,13 @@ export const getAllCourses = async () => {
       throw new Error("No courses found");
     }
 
-    return courses; // Return all courses
+    return courses;
   } catch (error: any) {
     console.error("Error fetching courses:", error.message);
-    throw error; // Rethrow the error if you want to handle it elsewhere
+    throw error;
   }
 };
+
 export const getAllCoursesByCategory = async (categoryId: string) => {
   try {
     const response = await databases.listDocuments(
@@ -342,6 +347,7 @@ export const getAllCoursesByCategory = async (categoryId: string) => {
       [
         Query.equal("category", categoryId), // Filter courses by category ID
         Query.greaterThanEqual("lessons", 1), // Ensure courses have at least one lesson
+        Query.orderDesc("date"), // Sort courses by `date` in descending order
       ]
     );
 
@@ -351,12 +357,13 @@ export const getAllCoursesByCategory = async (categoryId: string) => {
       throw new Error("No courses found for this category");
     }
 
-    return courses; // Return filtered courses
+    return courses; // Return sorted courses
   } catch (error: any) {
     console.error("Error fetching courses by category:", error.message);
     throw error; // Rethrow the error if you want to handle it elsewhere
   }
 };
+
 // Function to get lessons for a specific course
 export const getLessonsForCourse = async (courseId: string) => {
   try {
@@ -383,20 +390,37 @@ export const getLessonsForCourse = async (courseId: string) => {
     throw error; // Rethrow the error if you want to handle it elsewhere
   }
 };
-export const getLessonById = async (lessonId: string) => {
+
+export async function getLessonAndCourseByLessonId(lessonId: string) {
+  const { databaseId, lessonsCollectionId, coursesCollectionId } =
+    appwriteConfig;
+
   try {
-    const response = await databases.getDocument(
-      appwriteConfig.databaseId, // The database ID where lessons are stored
-      appwriteConfig.lessonsCollectionId, // The collection ID for lessons
-      lessonId // The document ID of the lesson
+    // Step 1: Fetch the lesson
+    const lesson = await databases.getDocument(
+      databaseId,
+      lessonsCollectionId,
+      lessonId
     );
 
-    return response; // Return the lesson document
+    // Step 2: Fetch the related course — will throw if invalid courseId
+    const course = await databases.getDocument(
+      databaseId,
+      coursesCollectionId,
+      lesson.courseId
+    );
+
+    return { lesson, course };
   } catch (error: any) {
-    console.error("Error fetching lesson by ID:", error.message || error);
-    throw error; // Rethrow the error for handling elsewhere
+    console.error(
+      "❌ Failed to fetch lesson and course:",
+      error.message || error
+    );
+    throw new Error(
+      "Failed to fetch lesson and course. Please try again later."
+    );
   }
-};
+}
 // Function to create a new course
 export const createCourse = async (courseData: {
   title: string;
@@ -601,7 +625,6 @@ export const handleVideoCompletion = async (
 
     // Optionally, you can notify the user of course completion
     if (isCourseComplete) {
-      console.log(`User ${userId} has completed the course ${courseId}!`);
       // Trigger notification logic or any post-completion workflow
     }
   } catch (error) {
@@ -1564,7 +1587,8 @@ export const updateGoalProgress = async (
       // Ensure at least one document is found
       if (growthSummaryQuery.documents.length > 0) {
         const growthSummaryId = growthSummaryQuery.documents[0].$id;
-        const currentGoalsCompleted = growthSummaryQuery.documents[0].goalsCompleted || 0;
+        const currentGoalsCompleted =
+          growthSummaryQuery.documents[0].goalsCompleted || 0;
 
         // Increment the goalsCompleted field
         await databases.updateDocument(
@@ -1573,7 +1597,7 @@ export const updateGoalProgress = async (
           growthSummaryId,
           {
             goalsCompleted: currentGoalsCompleted + 1,
-            lastActivityDate: new Date()
+            lastActivityDate: new Date(),
           }
         );
       } else {
@@ -1586,9 +1610,6 @@ export const updateGoalProgress = async (
     throw error;
   }
 };
-
-
-
 
 export const fetchGrowthSummary = async (userId: string) => {
   try {
@@ -1610,8 +1631,10 @@ export const fetchGrowthSummary = async (userId: string) => {
   }
 };
 
-export async function subscribeToPlan(planId: string,
-  paymentMethod: string, paymentReference: string
+export async function subscribeToPlan(
+  planId: string,
+  paymentMethod: string,
+  paymentReference: string
 ) {
   try {
     const user = await account.get();
@@ -1629,7 +1652,7 @@ export async function subscribeToPlan(planId: string,
         startDate: Date.now(),
         endDate: validUntil,
         paymentMethod,
-        paymentReference
+        paymentReference,
       }
     );
 

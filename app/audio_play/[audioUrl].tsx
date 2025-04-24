@@ -1,33 +1,30 @@
-import React, { useEffect, useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
+  SafeAreaView,
   View,
   Text,
-  Image,
   TouchableOpacity,
-  SafeAreaView,
-  Dimensions,
+  Image,
   Platform,
   StatusBar,
 } from "react-native";
-import { Audio } from "expo-av";
-import Slider from "@react-native-community/slider";
 import { Ionicons, FontAwesome } from "@expo/vector-icons";
-import { Stack, useLocalSearchParams, useNavigation } from "expo-router";
+import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from "expo-av";
+import { Stack, useNavigation } from "expo-router";
+import Slider from "@react-native-community/slider";
+
+import { useLocalSearchParams } from "expo-router"; // For handling route params
+
 import * as Notifications from "expo-notifications";
-import { InterruptionModeIOS, InterruptionModeAndroid } from "expo-av";
-import { DeviceEventEmitter } from "react-native"; // For boot event
-
-const samplePodcastData = {
-  title: "Building a Marketplace with Next.js",
-  author: "John Doe",
-  thumbnail: require("../../assets/images/thumbnail.png"),
-  audioUri: require("../../assets/audio/audio.mp3"),
-};
-
-let currentlyPlayingSound: Audio.Sound | null = null;
-
-import { handleVideoCompletion,getLessonById } from "../../lib/appwrite";
+import { DeviceEventEmitter } from "react-native";
 import { useGlobalContext } from "../../context/GlobalProvider";
+import {
+  getLessonAndCourseByLessonId,
+  handleVideoCompletion,
+} from "../../lib/appwrite";
+
+let currentlyPlayingSound: Audio.Sound | null = null; // Track current playing sound globally
+
 const AudioPlayer = () => {
   const [sound, setSound] = useState<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -35,21 +32,54 @@ const AudioPlayer = () => {
   const [durationMillis, setDurationMillis] = useState(0);
   const navigation = useNavigation();
   const [lessonData, setLessonData] = useState<any>(null);
+  const [courseData, setCourseData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const params = useLocalSearchParams();
   const url = params.audioUrl as string; // The video/audio URL
   const courseId = params.courseId as string; // The course ID
   const lessonId = params.lessonId as string;
   const { user } = useGlobalContext();
+  const userId = user?.Id;
 
-  const userId = user.Id;
-
+  // Notify when audio completes
   const audioCompletion = () => {
     handleVideoCompletion(userId, courseId, lessonId);
   };
+
+  // Fetch lesson and course details
   useEffect(() => {
+    if (!lessonId) return;
+
+    const fetchLessonAndCourse = async () => {
+      setLoading(true);
+      try {
+        const { lesson, course } = await getLessonAndCourseByLessonId(lessonId);
+        setLessonData(lesson);
+        setCourseData(course);
+      } catch (err) {
+        setError("❌ Error fetching lesson or course.");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLessonAndCourse();
+  }, [lessonId]);
+
+  // Early return loading state
+
+  // Handle playback: load sound, control play/pause, etc.
+  const currentAudioUrlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (loading || !url) return;
+
+    let isCancelled = false;
+
     const loadSound = async () => {
       try {
-        // Set audio mode
         await Audio.setAudioModeAsync({
           allowsRecordingIOS: false,
           staysActiveInBackground: true,
@@ -59,38 +89,43 @@ const AudioPlayer = () => {
           shouldDuckAndroid: true,
           playThroughEarpieceAndroid: false,
         });
-  
-        // Pause and unload the currently playing sound, if any
+
+        // Prevent reloading if already playing this URL
+        if (currentAudioUrlRef.current === url) return;
+
         if (currentlyPlayingSound) {
           await currentlyPlayingSound.pauseAsync();
           await currentlyPlayingSound.unloadAsync();
+          currentlyPlayingSound = null;
         }
-  
-        // Create a new sound instance
+
         const { sound: newSound } = await Audio.Sound.createAsync(
-          { uri: url }, // Wrap the URL as an AVPlaybackSource
+          { uri: url },
           { shouldPlay: true, isLooping: false }
         );
-  
+
+        if (isCancelled) {
+          await newSound.unloadAsync();
+          return;
+        }
+
         setSound(newSound);
         currentlyPlayingSound = newSound;
-  
-        // Get and set the duration of the audio
+        currentAudioUrlRef.current = url; // update the reference
+
         const status = await newSound.getStatusAsync();
         if (status.isLoaded && status.durationMillis) {
           setDurationMillis(status.durationMillis);
         }
-  
-        // Listen for playback status updates
+
         newSound.setOnPlaybackStatusUpdate((status) => {
           if (status.isLoaded) {
             setPositionMillis(status.positionMillis);
             setIsPlaying(status.isPlaying);
-  
-            // Detect when the audio finishes
+
             if (status.didJustFinish) {
-           
-              audioCompletion(); // Call your completion function here
+              audioCompletion();
+              currentAudioUrlRef.current = null; // reset after finish
             }
           }
         });
@@ -98,17 +133,17 @@ const AudioPlayer = () => {
         console.error("Error loading sound:", error);
       }
     };
-  
+
     loadSound();
-  
+
     return () => {
-      // Cleanup the sound when the component unmounts
+      isCancelled = true;
       sound?.unloadAsync();
       if (currentlyPlayingSound === sound) currentlyPlayingSound = null;
     };
-  }, []);
-  
+  }, [loading, url]);
 
+  // Play or pause the sound
   const handlePlayPause = async () => {
     if (isPlaying) {
       await sound?.pauseAsync();
@@ -118,18 +153,21 @@ const AudioPlayer = () => {
     setIsPlaying(!isPlaying);
   };
 
+  // Rewind by 15 seconds
   const rewind = async () => {
     const newPosition = Math.max(positionMillis - 15000, 0);
     await sound?.setPositionAsync(newPosition);
     setPositionMillis(newPosition);
   };
 
+  // Fast forward by 15 seconds
   const fastForward = async () => {
     const newPosition = Math.min(positionMillis + 15000, durationMillis);
     await sound?.setPositionAsync(newPosition);
     setPositionMillis(newPosition);
   };
 
+  // Update position every second
   useEffect(() => {
     const interval = setInterval(async () => {
       const status = await sound?.getStatusAsync();
@@ -171,9 +209,10 @@ const AudioPlayer = () => {
         body: "Tap to open the audio player",
       },
       trigger: {
-        seconds: 5, // Trigger after 5 seconds
-        repeats: true, // Repeat every 5 seconds
-      },
+        type: "timeInterval",
+        seconds: 5,
+        repeats: true,
+      } as Notifications.TimeIntervalTriggerInput, // 👈 This is key
     });
   };
 
@@ -203,17 +242,24 @@ const AudioPlayer = () => {
     requestNotificationPermissions();
     createNotificationChannel();
   }, []);
-
+  if (loading) {
+    return (
+      <SafeAreaView className="bg-gray-800 flex-1 items-center justify-center">
+        <Text className="text-white">Loading...</Text>
+      </SafeAreaView>
+    );
+  }
   return (
     <SafeAreaView
       className="bg-gray-800"
       style={{
         flex: 1,
-
         paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
       }}
     >
       <Stack.Screen options={{ headerShown: false }} />
+
+      {/* Header */}
       <View className="flex-row items-center p-4">
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={28} color="white" />
@@ -221,15 +267,22 @@ const AudioPlayer = () => {
         <Text className="text-white text-xl ml-4">Now Playing</Text>
       </View>
 
+      {/* Content */}
       <View className="items-center mt-8">
         <Image
-          source={samplePodcastData.thumbnail}
+          source={{
+            uri: courseData?.thumbnail || "https://via.placeholder.com/300",
+          }}
           className="w-[80vw] h-[80vw] rounded-lg mb-5"
         />
+        <Text className="text-2xl text-white font-bold">
+          {lessonData?.title || "Untitled Lesson"}
+        </Text>
+        <Text className="text-lg text-gray-400 mb-5">
+          {courseData?.instructor || "Unknown Instructor"}
+        </Text>
 
-        <Text className="text-2xl text-white font-bold">Lesson name</Text>
-        <Text className="text-lg text-gray-400 mb-5">Teacher</Text>
-
+        {/* Slider */}
         <View className="flex-row items-center w-[85vw]">
           <Text className="text-white">{formatTime(positionMillis)}</Text>
           <Slider
@@ -244,30 +297,29 @@ const AudioPlayer = () => {
             minimumTrackTintColor="#FF9C01"
             maximumTrackTintColor="#8E8E93"
             thumbTintColor="#FF9C01"
-          />
-          <Text className="text-white">{formatTime(durationMillis)}</Text>
+          />{" "}
+          <Text className="text-white">{formatTime(durationMillis)}</Text>{" "}
         </View>
-
-        <View className="flex-row mt-5">
-          <TouchableOpacity onPress={rewind} className="p-5">
-            <FontAwesome name="fast-backward" size={24} color="white" />
+        {/* Controls */}
+        <View className="flex-row items-center justify-between w-[60vw] mt-5">
+          <TouchableOpacity onPress={rewind}>
+            <FontAwesome name="backward" size={30} color="white" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handlePlayPause} className="p-5">
-            <Ionicons
-              name={isPlaying ? "pause-circle" : "play-circle"}
-              size={60}
-              color="#FF9C01"
+          <TouchableOpacity onPress={handlePlayPause}>
+            <FontAwesome
+              name={isPlaying ? "pause" : "play"}
+              size={30}
+              color="white"
             />
           </TouchableOpacity>
-          <TouchableOpacity onPress={fastForward} className="p-5">
-            <FontAwesome name="fast-forward" size={24} color="white" />
+          <TouchableOpacity onPress={fastForward}>
+            <FontAwesome name="forward" size={30} color="white" />
           </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
   );
 };
-
 const formatTime = (millis: number) => {
   const totalSeconds = Math.floor(millis / 1000);
   const minutes = Math.floor(totalSeconds / 60);
