@@ -1,32 +1,33 @@
-import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
-import * as Notifications from "expo-notifications";
+import React, { useEffect, useRef, useState } from "react";
 import {
-  DeviceEventEmitter,
-  Image,
-  InteractionManager,
-  Platform,
-  SafeAreaView,
-  StatusBar,
-  Text,
-  TouchableOpacity,
   View,
+  Text,
+  ActivityIndicator,
+  SafeAreaView,
+  TouchableOpacity,
+  Image,
+  Platform,
+  StatusBar,
+  DeviceEventEmitter,
+  InteractionManager,
 } from "react-native";
-import { useEffect, useRef, useState } from "react";
+import { useNavigation, useLocalSearchParams, Stack } from "expo-router";
+import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from "expo-av";
+import { Ionicons, FontAwesome } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
-import { FontAwesome, Ionicons } from "@expo/vector-icons";
-import { Stack, useNavigation } from "expo-router";
-import { useLocalSearchParams } from "expo-router";
-
+import * as Notifications from "expo-notifications";
+import Constants from "expo-constants";
+import * as Device from "expo-device";
 import {
-  handleVideoCompletion,
   getLessonAndCourseByLessonId,
+  handleVideoCompletion,
 } from "../../lib/appwrite";
 import { useGlobalContext } from "../../context/GlobalProvider";
 
-let currentlyPlayingSound: Audio.Sound | null = null; // Track current playing sound globally
+let currentlyPlayingSound: Audio.Sound | null = null;
 
 const AudioPlayer = () => {
-  const soundRef = useRef<Audio.Sound | null>(null); // ✅ useRef instead of useState
+  const soundRef = useRef<Audio.Sound | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [positionMillis, setPositionMillis] = useState(0);
   const [durationMillis, setDurationMillis] = useState(0);
@@ -96,8 +97,9 @@ const AudioPlayer = () => {
         if (status.isLoaded && status.durationMillis) {
           setDurationMillis(status.durationMillis);
         }
+
         sound.setOnPlaybackStatusUpdate((status) => {
-          InteractionManager.runAfterInteractions(() => {
+          requestAnimationFrame(() => {
             try {
               if (!status.isLoaded) return;
               setPositionMillis(status.positionMillis);
@@ -115,15 +117,16 @@ const AudioPlayer = () => {
       }
     };
 
-    const timeout = setTimeout(() => {
+    const timeout = setTimeout(async () => {
       loadSound();
-    }, 1000); // Let UI mount first
+      await schedulePushNotification();
+    }, 1000);
 
     return () => {
       soundRef.current?.unloadAsync();
-      if (currentlyPlayingSound === soundRef.current)
+      if (currentlyPlayingSound === soundRef.current) {
         currentlyPlayingSound = null;
-
+      }
       clearTimeout(timeout);
     };
   }, [url]);
@@ -135,10 +138,13 @@ const AudioPlayer = () => {
     try {
       if (isPlaying) {
         await sound.pauseAsync();
+        setIsPlaying(false);
+        await Notifications.cancelAllScheduledNotificationsAsync();
       } else {
         await sound.playAsync();
+        setIsPlaying(true);
+        await schedulePushNotification();
       }
-      setIsPlaying(!isPlaying);
     } catch (e) {
       console.error("Play/Pause Error:", e);
     }
@@ -184,48 +190,27 @@ const AudioPlayer = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const requestNotificationPermissions = async () => {
-    const { status: existingStatus } =
-      await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    if (existingStatus !== "granted") {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    if (finalStatus !== "granted") {
-      alert("Permission for notifications is required!");
-    }
-  };
-
-  const createNotificationChannel = async () => {
-    await Notifications.setNotificationChannelAsync("default", {
-      name: "default",
-      importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#FF231F7C",
-    });
-  };
-
-  const scheduleNotification = async () => {
+  async function schedulePushNotification() {
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: "Background Audio is playing",
-        body: "Tap to open the audio player",
+        title: "You've got mail! 📬",
+        body: "Here is the notification body",
+        data: { data: "goes here", test: { test1: "more data" } },
       },
       trigger: {
-        type: "timeInterval",
-        seconds: 5,
-        repeats: true,
-      } as Notifications.TimeIntervalTriggerInput,
+        type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+        seconds: 2,
+      },
     });
-  };
+  }
 
   useEffect(() => {
     if (Platform.OS === "android") {
       DeviceEventEmitter.addListener(
         "android.intent.action.BOOT_COMPLETED",
         () => {
-          scheduleNotification();
+          console.log("Device boot completed, rescheduling notification.");
+          schedulePushNotification();
         }
       );
     }
@@ -240,93 +225,148 @@ const AudioPlayer = () => {
   }, []);
 
   useEffect(() => {
-    requestNotificationPermissions();
-    createNotificationChannel();
+    registerForPushNotificationsAsync().then();
   }, []);
+
+  async function registerForPushNotificationsAsync() {
+    let token;
+
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("myNotificationChannel", {
+        name: "A channel is needed for the permissions prompt to appear",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#FF231F7C",
+      });
+    }
+
+    if (Device.isDevice) {
+      const { status: existingStatus } =
+        await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== "granted") {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== "granted") {
+        alert("Failed to get push token for push notification!");
+        return;
+      }
+
+      try {
+        const projectId =
+          Constants?.expoConfig?.extra?.eas?.projectId ??
+          Constants?.easConfig?.projectId;
+        if (!projectId) {
+          throw new Error("Project ID not found");
+        }
+        token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+        console.log(token);
+      } catch (e) {
+        token = `${e}`;
+      }
+    } else {
+      alert("Must use physical device for Push Notifications");
+    }
+
+    return token;
+  }
 
   if (loading) {
     return (
-      <SafeAreaView className="bg-gray-800 flex-1 items-center justify-center">
-        <Text className="text-white">Loading...</Text>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "#1F1F1F",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <ActivityIndicator size="large" color="#fff" />
+        <Text style={{ color: "#fff", marginTop: 10 }}>Loading...</Text>
+      </View>
+    );
+  }
+
+  if (courseData && lessonData) {
+    return (
+      <SafeAreaView
+        className="bg-gray-800"
+        style={{
+          flex: 1,
+          paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
+        }}
+      >
+        <Stack.Screen options={{ headerShown: false }} />
+        <View className="flex-row items-center p-4">
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={28} color="white" />
+          </TouchableOpacity>
+          <Text className="text-white text-xl ml-4">Now Playing</Text>
+        </View>
+
+        <View className="items-center mt-8">
+          {courseData?.thumbnail ? (
+            <Image
+              source={{ uri: courseData.thumbnail }}
+              className="w-[80vw] h-[80vw] rounded-lg mb-5"
+            />
+          ) : (
+            <View className="w-[80vw] h-[80vw] bg-gray-700 rounded-lg mb-5 items-center justify-center">
+              <Text className="text-black">No Thumbnail</Text>
+            </View>
+          )}
+
+          <Text className="text-2xl text-white font-bold">
+            {lessonData?.title || "Untitled Lesson"}
+          </Text>
+          <Text className="text-lg text-gray-400 mb-5">
+            {courseData?.instructor || "Unknown Instructor"}
+          </Text>
+
+          <View className="flex-row items-center w-[85vw]">
+            <Text className="text-white">{formatTime(positionMillis)}</Text>
+            <Slider
+              style={{ width: "85%" }}
+              minimumValue={0}
+              maximumValue={durationMillis}
+              value={positionMillis}
+              onSlidingComplete={async (value) => {
+                try {
+                  await soundRef.current?.setPositionAsync(value);
+                  setPositionMillis(value);
+                } catch (e) {
+                  console.log("Slider error:", e);
+                }
+              }}
+              minimumTrackTintColor="#FF9C01"
+              maximumTrackTintColor="#8E8E93"
+              thumbTintColor="#FF9C01"
+            />
+            <Text className="text-white">{formatTime(durationMillis)}</Text>
+          </View>
+
+          <View className="flex-row items-center justify-between w-[60vw] mt-5">
+            <TouchableOpacity onPress={rewind}>
+              <FontAwesome name="backward" size={30} color="white" />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handlePlayPause}>
+              <FontAwesome
+                name={isPlaying ? "pause" : "play"}
+                size={30}
+                color="white"
+              />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={fastForward}>
+              <FontAwesome name="forward" size={30} color="white" />
+            </TouchableOpacity>
+          </View>
+        </View>
       </SafeAreaView>
     );
   }
 
-  return (
-    <SafeAreaView
-      className="bg-gray-800"
-      style={{
-        flex: 1,
-        paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
-      }}
-    >
-      <Stack.Screen options={{ headerShown: false }} />
-      <View className="flex-row items-center p-4">
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={28} color="white" />
-        </TouchableOpacity>
-        <Text className="text-white text-xl ml-4">Now Playing</Text>
-      </View>
-
-      <View className="items-center mt-8">
-        {courseData?.thumbnail ? (
-          <Image
-            source={{ uri: courseData.thumbnail }}
-            className="w-[80vw] h-[80vw] rounded-lg mb-5"
-          />
-        ) : (
-          <View className="w-[80vw] h-[80vw] bg-gray-700 rounded-lg mb-5 items-center justify-center">
-            <Text className="text-black">No Thumbnail</Text>
-          </View>
-        )}
-
-        <Text className="text-2xl text-white font-bold">
-          {lessonData?.title || "Untitled Lesson"}
-        </Text>
-        <Text className="text-lg text-gray-400 mb-5">
-          {courseData?.instructor || "Unknown Instructor"}
-        </Text>
-
-        <View className="flex-row items-center w-[85vw]">
-          <Text className="text-white">{formatTime(positionMillis)}</Text>
-          <Slider
-            style={{ width: "85%" }}
-            minimumValue={0}
-            maximumValue={durationMillis}
-            value={positionMillis}
-            onSlidingComplete={async (value) => {
-              try {
-                await soundRef.current?.setPositionAsync(value);
-                setPositionMillis(value);
-              } catch (e) {
-                console.log("Slider error:", e);
-              }
-            }}
-            minimumTrackTintColor="#FF9C01"
-            maximumTrackTintColor="#8E8E93"
-            thumbTintColor="#FF9C01"
-          />
-          <Text className="text-white">{formatTime(durationMillis)}</Text>
-        </View>
-
-        <View className="flex-row items-center justify-between w-[60vw] mt-5">
-          <TouchableOpacity onPress={rewind}>
-            <FontAwesome name="backward" size={30} color="white" />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handlePlayPause}>
-            <FontAwesome
-              name={isPlaying ? "pause" : "play"}
-              size={30}
-              color="white"
-            />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={fastForward}>
-            <FontAwesome name="forward" size={30} color="white" />
-          </TouchableOpacity>
-        </View>
-      </View>
-    </SafeAreaView>
-  );
+  return null;
 };
 
 export default AudioPlayer;

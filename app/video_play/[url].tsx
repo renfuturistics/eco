@@ -22,7 +22,7 @@ const VideoPlay = () => {
   const params = useLocalSearchParams();
   const url = params.url as string; // The video/audio URL
   const courseId = params.courseId as string; // The course ID
-  const lessonId = params.lessonId as string
+  const lessonId = params.lessonId as string;
   const router = useRouter();
   const videoRef = useRef<Video>(null);
   const [status, setStatus] = useState<AVPlaybackStatus | null>(null);
@@ -38,10 +38,9 @@ const VideoPlay = () => {
   const userId = user.Id;
 
   const videoCompletion = () => {
-handleVideoCompletion(userId,courseId,lessonId)
+    handleVideoCompletion(userId, courseId, lessonId);
   };
 
-  
   const togglePlayback = () => {
     if (status?.isLoaded) {
       if (status.isPlaying) {
@@ -121,7 +120,7 @@ handleVideoCompletion(userId,courseId,lessonId)
     setStatus(status);
 
     if (status.isLoaded && status.didJustFinish) {
-    videoCompletion()
+      videoCompletion();
     }
     setIsLoading(!status.isLoaded || !status.isPlaying); // Update loading state
   };
@@ -136,7 +135,9 @@ handleVideoCompletion(userId,courseId,lessonId)
           <Video
             className="w-full h-60 rounded-xl mt-3"
             ref={videoRef}
-            source={{ uri: "https://cloud.appwrite.io/v1/storage/buckets/671992c80019376d25f1/files/6751a37b0020c8e653b8/view?project=67198dbd00277f568222&project=67198dbd00277f568222&mode=admin" }}
+            source={{
+              uri: "https://cloud.appwrite.io/v1/storage/buckets/671992c80019376d25f1/files/6751a37b0020c8e653b8/view?project=67198dbd00277f568222&project=67198dbd00277f568222&mode=admin",
+            }}
             style={{
               width: Dimensions.get("window").width,
               height: Dimensions.get("window").height,
