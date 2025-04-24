@@ -16,11 +16,12 @@ import Slider from "@react-native-community/slider";
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
 import { Stack, useNavigation } from "expo-router";
 import { useLocalSearchParams } from "expo-router";
-import { useGlobalContext } from "../../context/GlobalProvider";
+
 import {
   handleVideoCompletion,
   getLessonAndCourseByLessonId,
 } from "../../lib/appwrite";
+import { useGlobalContext } from "../../context/GlobalProvider";
 
 let currentlyPlayingSound: Audio.Sound | null = null; // Track current playing sound globally
 
@@ -114,12 +115,16 @@ const AudioPlayer = () => {
       }
     };
 
-    loadSound();
+    const timeout = setTimeout(() => {
+      loadSound();
+    }, 1000); // Let UI mount first
 
     return () => {
       soundRef.current?.unloadAsync();
       if (currentlyPlayingSound === soundRef.current)
         currentlyPlayingSound = null;
+
+      clearTimeout(timeout);
     };
   }, [url]);
 
@@ -140,7 +145,7 @@ const AudioPlayer = () => {
   };
 
   const rewind = async () => {
-    const newPosition = Math.max(positionMillis - 15000, 0);
+    const newPosition = Math.max(positionMillis - 10000, 0);
     try {
       await soundRef.current?.setPositionAsync(newPosition);
       setPositionMillis(newPosition);
@@ -150,7 +155,7 @@ const AudioPlayer = () => {
   };
 
   const fastForward = async () => {
-    const newPosition = Math.min(positionMillis + 15000, durationMillis);
+    const newPosition = Math.min(positionMillis + 10000, durationMillis);
     try {
       await soundRef.current?.setPositionAsync(newPosition);
       setPositionMillis(newPosition);
