@@ -1,5 +1,5 @@
 import { FontAwesome, Ionicons } from "@expo/vector-icons";
-import { LinearGradient } from "expo-linear-gradient";
+
 import {
   ActivityIndicator,
   SafeAreaView,
@@ -15,29 +15,27 @@ import TrackPlayer, { useActiveTrack } from "react-native-track-player";
 import { unknownTrackImageUri } from "../../constants/images/images";
 import { defaultStyles, utilsStyles } from "../../styles";
 import { colors, screenPadding, fontSize } from "../../constants/tokens";
-import { usePlayerBackground } from "../hooks/usePlayerBackground";
+
 import { PlayerControls } from "../../components/PlayerControls";
 import { PlayerProgressBar } from "../../components/PlayerProgressbar";
 import { MovingText } from "../../components/MovingText";
 import { PlayerRepeatToggle } from "../../components/PlayerRepeatToggle";
 import { PlayerVolumeBar } from "../../components/PlayerVolumeBar";
 import { useLocalSearchParams, useNavigation } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { getLessonAndCourseByLessonId } from "../../lib/appwrite";
+import PageHeader from "../../components/PageHeader";
 
 const AudioPlayer = () => {
   const activeTrack = useActiveTrack();
 
   const { top, bottom } = useSafeAreaInsets();
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [positionMillis, setPositionMillis] = useState(0);
-  const [durationMillis, setDurationMillis] = useState(0);
+
   const [lessonData, setLessonData] = useState<any>(null);
   const [courseData, setCourseData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const navigation = useNavigation();
-  const soundRef = useRef(null);
+
   const params = useLocalSearchParams();
   const audioUrl = typeof params.audioUrl === "string" ? params.audioUrl : "";
   const lessonId = typeof params.lessonId === "string" ? params.lessonId : "";
@@ -102,17 +100,8 @@ const AudioPlayer = () => {
 
   return (
     <SafeAreaView className="flex-1 bg-gray-900">
-      <View style={{ flexDirection: "row", padding: 16, alignItems: "center" }}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={28} color="white" />
-        </TouchableOpacity>
-        <Text style={{ color: "white", fontSize: 18, marginLeft: 16 }}>
-          Now Playing
-        </Text>
-      </View>
+      <PageHeader title="Now Listening" />
       <View style={styles.overlayContainer}>
-        <DismissPlayerSymbol />
-
         <View style={{ flex: 1, marginTop: top + 70, marginBottom: bottom }}>
           <View style={styles.artworkImageContainer}>
             <Image
