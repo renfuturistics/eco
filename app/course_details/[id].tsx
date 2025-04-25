@@ -1,128 +1,191 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import {
+  SafeAreaView,
   View,
   Text,
-  Image,
-  SafeAreaView,
+  ActivityIndicator,
   FlatList,
   TouchableOpacity,
-  TextInput,
+  Image,
+  Alert,
   ScrollView,
-  ActivityIndicator,
-  Alert, // For Progress Indicator
 } from "react-native";
-import { useLocalSearchParams, Stack, useRouter } from "expo-router";
 import { FontAwesome } from "@expo/vector-icons";
-import "nativewind";
-import { createUserCourse, getCourseWithLessons } from "../../lib/appwrite";
+
 import PageHeader from "../../components/PageHeader";
+import TrackPlayer from "react-native-track-player";
 import { useGlobalContext } from "../../context/GlobalProvider";
+import { getCourseWithLessons, createUserCourse } from "../../lib/appwrite";
+import { useAddTrack, useTracks } from "../../store/library";
+import { useQueue } from "../../store/queue";
 
 const CourseDetails = () => {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { subscription, user } = useGlobalContext();
-  const [data, setCourse] = useState<any>(null);
-  const [lessons, setLessons] = useState<any>(null);
-  const [loading, setLoading] = useState(true); // For tracking loading state
-  const [error, setError] = useState<string | null>(null); // For tracking errors
-  const [totalLessons, setTotalLessons] = useState<number | null>(null);
+  const addTrack = useAddTrack(); // Now you can call this function to add tracks
+  const tracks = useTracks();
+  const { activeQueueId, setActiveQueueId } = useQueue();
+
+  const [courseData, setCourseData] = useState<any>(null);
+  const [lessons, setLessons] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const userId = user?.Id || "";
 
+  const queueOffset = useRef(0);
+
   useEffect(() => {
-    async function fetchCourses() {
+    const fetchCourses = async () => {
       try {
         setLoading(true);
-        const courseData = await getCourseWithLessons(id?.toString() || "");
-        setCourse(courseData.course);
-        setTotalLessons(courseData.course.lessons);
+        const data = await getCourseWithLessons(id?.toString() || "");
+        setCourseData(data.course);
+        setLessons(data.lessons);
 
-        setLessons(courseData.lessons);
-        setError(null); // Clear any previous errors
-      } catch (error: any) {
-        console.error("Error fetching courses:", error);
+        data.lessons.forEach((lesson: any) => {
+          const track = {
+            id: lesson.$id,
+            url: lesson.url,
+            title: lesson.title,
+            artist: data.course.instructor,
+            artwork: data.course.thumbnail || "unknownTrackImageUri",
+          };
+          addTrack(track);
+        });
+        setError(null); // Clear previous errors
+      } catch (err) {
+        console.error("Error fetching course:", err);
         setError("Failed to fetch course details. Please try again.");
       } finally {
         setLoading(false);
       }
-    }
+    };
 
     fetchCourses();
-  }, []);
+  }, [id, addTrack]); // Include id in dependencies to re-fetch when id changes
+
+  const handleTrackSelect = useCallback(
+    async (id: string, url: string) => {
+      const selectedTrack = tracks.find((track) => track.url === url);
+      if (!selectedTrack) return;
+      const trackIndex = tracks.findIndex(
+        (track) => track.url === selectedTrack.url
+      );
+
+      if (trackIndex === -1) return;
+
+      const isChangingQueue = id !== activeQueueId;
+
+      if (isChangingQueue) {
+        const beforeTracks = tracks.slice(0, trackIndex);
+        const afterTracks = tracks.slice(trackIndex + 1);
+
+        await TrackPlayer.reset();
+        await TrackPlayer.add(selectedTrack);
+        await TrackPlayer.add(afterTracks);
+        await TrackPlayer.add(beforeTracks);
+
+        queueOffset.current = trackIndex;
+        setActiveQueueId(id);
+      } else {
+        const nextTrackIndex =
+          trackIndex - queueOffset.current < 0
+            ? tracks.length + trackIndex - queueOffset.current
+            : trackIndex - queueOffset.current;
+
+        await TrackPlayer.skip(nextTrackIndex);
+        TrackPlayer.play();
+      }
+    },
+    [tracks, activeQueueId, setActiveQueueId]
+  );
+
   const handleVideoPress = async (
     url: string,
     courseId: string,
     totalLessons: number,
-    lessonId: string
+    lessonId: string,
+    lesson: any
   ) => {
     try {
-      // Enroll the user in the course if not already enrolled
       await createUserCourse(userId, courseId, totalLessons);
 
-      // Navigate to the appropriate media playback page
-      if (data && data.format === "video") {
+      if (courseData?.format === "video") {
         router.push(
           `/video_play/${encodeURIComponent(url)}?courseId=${encodeURIComponent(
             courseId
           )}&lessonId=${encodeURIComponent(lessonId)}`
         );
       } else {
-        router.push(
-          `/audio_play/${encodeURIComponent(url)}?courseId=${encodeURIComponent(
-            courseId
-          )}&lessonId=${encodeURIComponent(lessonId)}`
-        );
+        handleTrackSelect(lesson.$id, lesson.url);
+        router.push({
+          pathname: "/audio_play/[audioUrl]",
+          params: {
+            audioUrl: `${encodeURIComponent(url)}`,
+            lessonId: `${encodeURIComponent(lessonId)}`,
+          },
+        });
       }
     } catch (error: any) {
       console.error("Error handling video press:", error.message);
-      Alert.alert("Error", "An Error Occurred");
+      Alert.alert("Error", "An error occurred");
     }
   };
 
-  const renderVideo = ({ item }: any) => {
-    // Determine if the video is accessible based on subscription or if it's free
-    const isAccessible = subscription || !item.isPaid;
+  const renderVideo = useCallback(
+    ({ item }: any) => {
+      const isAccessible = subscription || !item.isPaid;
 
-    return (
-      <TouchableOpacity
-        disabled={!isAccessible} // Disable button if not accessible
-        onPress={() =>
-          isAccessible &&
-          handleVideoPress(item.url, data.$id, totalLessons!!, item.$id)
-        }
-        className={`flex-row justify-between items-center py-4 border-b ${
-          isAccessible ? "border-gray-700" : "border-gray-500"
-        }`}
-        style={{
-          opacity: isAccessible ? 1 : 0.5, // Grayed out effect for inaccessible items
-        }}
-      >
-        <View className="flex-1">
-          <Text
-            className="text-lg"
-            style={{
-              color: isAccessible ? "#FFFFFF" : "#AAAAAA", // Text color change for inaccessible items
-            }}
-          >
-            {item.title}
-          </Text>
-          <Text
-            className="text-sm"
-            style={{
-              color: isAccessible ? "#CCCCCC" : "#777777", // Subtext color adjustment
-            }}
-          >
-            {item.duration}
-          </Text>
-        </View>
-        <FontAwesome
-          name={isAccessible ? "play-circle" : "lock"}
-          size={24}
-          color={isAccessible ? "#1DB954" : "#AAA"} // Icon color adjustment
-        />
-      </TouchableOpacity>
-    );
-  };
+      return (
+        <TouchableOpacity
+          disabled={!isAccessible}
+          onPress={() =>
+            isAccessible &&
+            handleVideoPress(
+              item.url,
+              courseData.$id,
+              lessons.length,
+              item.$id,
+              item
+            )
+          }
+          className={`flex-row justify-between items-center py-4 border-b ${
+            isAccessible ? "border-gray-700" : "border-gray-500"
+          }`}
+          style={{
+            opacity: isAccessible ? 1 : 0.5,
+          }}
+        >
+          <View className="flex-1">
+            <Text
+              className="text-lg"
+              style={{
+                color: isAccessible ? "#FFFFFF" : "#AAAAAA",
+              }}
+            >
+              {item.title}
+            </Text>
+            <Text
+              className="text-sm"
+              style={{
+                color: isAccessible ? "#CCCCCC" : "#777777",
+              }}
+            >
+              {item.duration}
+            </Text>
+          </View>
+          <FontAwesome
+            name={isAccessible ? "play-circle" : "lock"}
+            size={24}
+            color={isAccessible ? "#1DB954" : "#AAA"}
+          />
+        </TouchableOpacity>
+      );
+    },
+    [handleVideoPress, subscription, lessons, courseData]
+  );
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -132,6 +195,24 @@ const CourseDetails = () => {
       day: "numeric",
     });
   };
+
+  if (loading) {
+    return (
+      <View className="flex-1 justify-center items-center">
+        <ActivityIndicator size="large" color="#FF9001" />
+        <Text className="text-gray-400 mt-4">Loading course details...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View className="flex-1 justify-center items-center">
+        <Text className="text-red-500 text-lg font-bold">{error}</Text>
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView className="flex-1 bg-gray-900">
       <PageHeader title="Program Details" />
@@ -148,26 +229,26 @@ const CourseDetails = () => {
         <ScrollView className="flex-1">
           <View className="p-4">
             <Image
-              source={{ uri: data?.thumbnail }}
+              source={{ uri: courseData?.thumbnail }}
               className="w-full h-60 rounded-lg mb-5"
             />
           </View>
 
           <View className="p-5">
             <Text className="text-white text-2xl font-bold mb-3">
-              {data?.title}
+              {courseData?.title}
             </Text>
             <View className="flex-row justify-between my-2">
               <Text className="text-gray-400 text-sm">
-                Instructor: {data?.instructor}
+                Instructor: {courseData?.instructor}
               </Text>
               <Text className="text-gray-400 text-sm">
-                {formatDate(data?.date)}
+                {formatDate(courseData?.date)}
               </Text>
             </View>
 
             <Text className="text-gray-300 text-lg my-4">
-              {data?.description}
+              {courseData?.description}
             </Text>
 
             {/* Lessons Section */}

@@ -3,3 +3,4 @@ npx expo-doctor
 eas build -p android --profile preview
 npx expo install --fix
 pnpm install -g eas-cli
+eas build --platform android --profile development
