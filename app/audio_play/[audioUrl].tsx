@@ -83,7 +83,6 @@ const AudioPlayer = () => {
       </View>
     );
   }
-
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -100,12 +99,9 @@ const AudioPlayer = () => {
       </View>
     );
   }
-  console.log("activeTrack", activeTrack);
+
   return (
-    <LinearGradient
-      style={{ flex: 1 }}
-      colors={[colors.background, colors.maximumTrackTintColor]}
-    >
+    <SafeAreaView className="flex-1 bg-gray-900">
       <View style={{ flexDirection: "row", padding: 16, alignItems: "center" }}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={28} color="white" />
@@ -174,7 +170,7 @@ const AudioPlayer = () => {
           </View>
         </View>
       </View>
-    </LinearGradient>
+    </SafeAreaView>
   );
 };
 
