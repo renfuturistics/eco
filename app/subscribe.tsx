@@ -8,7 +8,7 @@ import {
   Image,
 } from "react-native";
 import { useGlobalContext } from "../context/GlobalProvider";
-import { createSubscription } from "../lib/appwrite";
+import { createSubscription, subscribeToPlan } from "../lib/appwrite";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -53,7 +53,7 @@ const SubscriptionOptions = ({
   onSubscribe: (planId: string) => void;
   plans: any[];
 }) => (
-  <View className="bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-lg">
+  <View className="bg-gray-900 p-6 rounded-lg shadow-lg w-full max-w-lg">
     <Text className="text-white text-xl font-bold text-center mb-6">
       Upgrade to premium
     </Text>
@@ -61,9 +61,11 @@ const SubscriptionOptions = ({
       data={plans}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => (
-        <View className="mb-6 p-4 bg-gray-700 rounded-lg shadow-md">
-          <Text className="text-white text-lg font-bold mb-2">{item.name}</Text>
-          <Text className="text-gray-400 mb-4">{`${item.price} ${item.currency}`}</Text>
+        <View className="mb-6 p-4 bg-gray-800 rounded-lg shadow-md">
+          <Text className="text-lg text-white font-semibold mb-2">
+            {item.name}
+          </Text>
+          <Text className=" text-white text-sm mb-4">{`${item.price} ${item.currency}`}</Text>
           {item.features.map((feature: string, index: number) => (
             <Text key={index} className="text-gray-300 text-sm mb-1">
               • {feature}
@@ -71,7 +73,7 @@ const SubscriptionOptions = ({
           ))}
           <TouchableOpacity
             className="mt-4 bg-secondary py-3 rounded-lg shadow-md"
-            onPress={() => onSubscribe(item.id)}
+            onPress={() => onSubscribe(item.$id)}
           >
             <Text className="text-white text-center font-bold">
               Subscribe to {item.name}
@@ -109,17 +111,7 @@ const SubscriptionPage = () => {
   }, []);
 
   const handleSubscribe = async (planId: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const newSubscription = await createSubscription(user?.Id, planId);
-      setSubscription(newSubscription);
-    } catch (err) {
-      console.error("Subscription error:", err);
-      setError("Failed to subscribe. Please try again.");
-    } finally {
-      setLoading(false);
-    }
+    router.push("/payment");
   };
 
   // Define the data for the flatlist (displaying subscription plans and other content)
@@ -146,7 +138,7 @@ const SubscriptionPage = () => {
             className="w-full py-8 px-4"
           >
             <Text className="text-white text-center text-3xl font-extrabold">
-           Try our premium plans today
+              Try our premium plans today
             </Text>
           </LinearGradient>
         </View>
@@ -155,10 +147,7 @@ const SubscriptionPage = () => {
 
     if (item.type === "plans") {
       return (
-        <SubscriptionOptions
-          onSubscribe={handleSubscribe}
-          plans={item.plans}
-        />
+        <SubscriptionOptions onSubscribe={handleSubscribe} plans={item.plans} />
       );
     }
 
@@ -202,7 +191,9 @@ const SubscriptionPage = () => {
           ) : subscription ? (
             <SubscriptionDetails subscription={subscription} />
           ) : error ? (
-            <Text className="text-red-500 text-center mt-6 text-sm">{error}</Text>
+            <Text className="text-red-500 text-center mt-6 text-sm">
+              {error}
+            </Text>
           ) : null
         }
       />

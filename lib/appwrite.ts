@@ -28,7 +28,7 @@ export const appwriteConfig = {
   messagesCollectionId: "675ffbe600292a61dc98",
   certificateFunctionId: "676fc380002e66f4afbe",
   grownthCollectionId: "677ba1ad002846adc8e1",
-  subscriptionCollectionId: "6773c7bd000ca5f2a632",
+  userScriptionsCollectionId: "680ba49a0038ad15ce75",
   goalsCollectionId: "677f97ee0032852f9984",
   milestonesCollectionId: "677f98e9000c14099d12",
   userSubcriptionsCollectionId: "67e40e8f0039f6ac23b6",
@@ -1320,11 +1320,11 @@ export async function createSubscription(userId: string, paymentId: string) {
     // Create a new subscription document
     const newSubscription = await databases.createDocument(
       appwriteConfig.databaseId, // Replace with your database ID
-      appwriteConfig.subscriptionCollectionId, // Replace with your subscription collection ID
+      appwriteConfig.userScriptionsCollectionId, // Replace with your subscription collection ID
       ID.unique(),
       {
         userId: userId,
-        paymentId: paymentId,
+        planId: paymentId,
         status: "active",
         validUntil: validUntil.toISOString(),
         createdAt: new Date().toISOString(),
@@ -1344,7 +1344,7 @@ export async function getActiveSubscription(userId: string) {
   try {
     const subscriptions = await databases.listDocuments(
       appwriteConfig.databaseId,
-      appwriteConfig.subscriptionCollectionId,
+      appwriteConfig.userScriptionsCollectionId,
       [
         Query.equal("userId", userId),
         Query.equal("status", "active"),
@@ -1367,7 +1367,7 @@ export async function expireSubscriptions() {
 
     const expiredSubscriptions = await databases.listDocuments(
       appwriteConfig.databaseId,
-      appwriteConfig.subscriptionCollectionId,
+      appwriteConfig.userScriptionsCollectionId,
       [Query.lessThan("validUntil", now), Query.equal("status", "active")]
     );
 
@@ -1375,7 +1375,7 @@ export async function expireSubscriptions() {
       (subscription: any) =>
         databases.updateDocument(
           appwriteConfig.databaseId,
-          appwriteConfig.subscriptionCollectionId,
+          appwriteConfig.userScriptionsCollectionId,
           subscription.$id,
           { status: "expired" }
         )
@@ -1639,18 +1639,21 @@ export async function subscribeToPlan(
   try {
     const user = await account.get();
     if (!user) throw new Error("User not logged in");
+
+    const startDate = new Date();
     const validUntil = new Date();
     validUntil.setMonth(validUntil.getMonth() + 1);
+
     await databases.createDocument(
       appwriteConfig.databaseId,
-      appwriteConfig.subscriptionCollectionId,
+      appwriteConfig.userScriptionsCollectionId,
       ID.unique(),
       {
         userId: user.$id,
-        planId: planId,
-
-        startDate: Date.now(),
-        endDate: validUntil,
+        planId,
+        status: "active",
+        startDate: startDate.toISOString(),
+        endDate: validUntil.toISOString(),
         paymentMethod,
         paymentReference,
       }
@@ -1662,6 +1665,7 @@ export async function subscribeToPlan(
     return false;
   }
 }
+
 export async function activateSubscription(subscriptionId: string) {
   try {
     // Fetch the subscription document using its ID

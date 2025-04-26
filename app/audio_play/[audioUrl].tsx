@@ -102,7 +102,7 @@ const AudioPlayer = () => {
     <SafeAreaView className="flex-1 bg-gray-900">
       <PageHeader title="Now Listening" />
       <View style={styles.overlayContainer}>
-        <View style={{ flex: 1, marginTop: top + 70, marginBottom: bottom }}>
+        <View style={{ flex: 1, marginTop: top + 50, marginBottom: bottom }}>
           <View style={styles.artworkImageContainer}>
             <Image
               source={{

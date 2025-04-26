@@ -79,6 +79,7 @@ const RootLayout = () => {
           <Stack.Screen name="notifications" options={{ headerShown: false }} />
           <Stack.Screen name="help-center" options={{ headerShown: false }} />
           <Stack.Screen name="edit_profile" options={{ headerShown: false }} />
+          <Stack.Screen name="payment" options={{ headerShown: false }} />
           <Stack.Screen
             name="privacy-policy"
             options={{ headerShown: false }}
