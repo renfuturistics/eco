@@ -5,12 +5,12 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import TrackPlayer from "react-native-track-player";
 
 import "../global.css";
-import GlobalProvider from "../context/GlobalProvider";
+import GlobalProvider, { useGlobalContext } from "../context/GlobalProvider";
 import { playbackService } from "../constants/playbackService";
 import { useLogTrackPlayerState } from "./hooks/useLogTrackPlayerState";
 import { useSetupTrackPlayer } from "./hooks/useSetupTrackPlayer";
 import { MtnGateway } from "../mobile-money/mtn/payment.service";
-import { checkPendingPayments } from "../lib/localStorage";
+import { checkPendingPayments, hasPendingPayments } from "../lib/localStorage";
 
 // ✅ Register the playback service safely
 TrackPlayer.registerPlaybackService(() => playbackService);
@@ -34,6 +34,7 @@ const RootLayout = () => {
 
   useSetupTrackPlayer({ onLoad: handleTrackPlayerLoaded });
   useLogTrackPlayerState();
+
   useEffect(() => {
     const setupGateway = async () => {
       const gateway = MtnGateway.getInstance();
@@ -43,9 +44,29 @@ const RootLayout = () => {
 
     setupGateway();
   }, []);
+
+  // 🟡 Check pending payments once at app start
   useEffect(() => {
-    // when app starts
     checkPendingPayments();
+  }, []);
+
+  // 🟠 Polling to check pending payments every 10 seconds
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+
+    async function startPolling() {
+      const hasPending = await hasPendingPayments();
+      if (hasPending) {
+        interval = setInterval(() => {
+          console.log("Polling pending payments...");
+          checkPendingPayments();
+        }, 10000);
+      }
+    }
+
+    startPolling();
+
+    return () => clearInterval(interval);
   }, []);
 
   // 🧠 Show splash until fonts are loaded or error occurs
@@ -54,13 +75,13 @@ const RootLayout = () => {
     if (fontsLoaded) SplashScreen.hideAsync();
   }, [fontsLoaded, fontError]);
 
-  // ⏳ While fonts are loading
   if (!fontsLoaded) return null;
 
   return (
     <GestureHandlerRootView>
       <GlobalProvider>
         <Stack>
+          {/* your Stack.Screen components */}
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="index" options={{ headerShown: false }} />
@@ -74,7 +95,6 @@ const RootLayout = () => {
             name="course_details/[id]"
             options={{ headerShown: false }}
           />
-
           <Stack.Screen
             name="audio_play/[audioUrl]"
             options={{ headerShown: false }}

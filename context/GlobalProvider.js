@@ -9,7 +9,9 @@ export const useGlobalContext = () => useContext(GlobalContext);
 const GlobalProvider = ({ children }) => {
   const [isLogged, setIsLogged] = useState(false);
   const [user, setUser] = useState(null);
-  const [subscription, setSubscription] = useState(null); // Add subscription state
+  const [subscription, setSubscription] = useState(null); // Subscription state
+  const [selectedPlan, setSelectedPlan] = useState(null); // Selected Plan state
+  const [paymentReference, setPaymentReference] = useState(null); // 🔥 NEW: Payment Reference
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,16 +22,15 @@ const GlobalProvider = ({ children }) => {
         if (currentUser) {
           setIsLogged(true);
           setUser(currentUser);
-  
-          // Try fetching the user's active subscription independently
+
           try {
             const activeSubscription = await getActiveSubscription(currentUser.Id);
             if (activeSubscription) {
-              setSubscription(activeSubscription); // Update the subscription state
+              setSubscription(activeSubscription);
             }
           } catch (subError) {
-
-            // Keep subscription as it is; do not set to null unnecessarily
+            console.log(subError)
+            // Do nothing if subscription fetch fails
           }
         } else {
           setIsLogged(false);
@@ -56,8 +57,12 @@ const GlobalProvider = ({ children }) => {
         setIsLogged,
         user,
         setUser,
-        subscription, // Provide subscription state
+        subscription,
         setSubscription,
+        selectedPlan,
+        setSelectedPlan,
+        paymentReference,     // 🔥 Provided in context
+        setPaymentReference,  // 🔥 Provided in context
         loading,
       }}
     >

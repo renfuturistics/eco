@@ -1311,35 +1311,6 @@ export const generateCertificate = async () => {
   }
 };
 
-export async function createSubscription(userId: string, paymentId: string) {
-  try {
-    // Calculate the subscription's expiration date (e.g., one month from now)
-    const validUntil = new Date();
-    validUntil.setMonth(validUntil.getMonth() + 1);
-
-    // Create a new subscription document
-    const newSubscription = await databases.createDocument(
-      appwriteConfig.databaseId, // Replace with your database ID
-      appwriteConfig.userScriptionsCollectionId, // Replace with your subscription collection ID
-      ID.unique(),
-      {
-        userId: userId,
-        planId: paymentId,
-        status: "active",
-        validUntil: validUntil.toISOString(),
-        createdAt: new Date().toISOString(),
-      }
-    );
-
-    if (!newSubscription)
-      throw new Error("Failed to create subscription document.");
-
-    return newSubscription;
-  } catch (error: any) {
-    console.error("Error in createSubscription:", error.message || error);
-    throw new Error(error);
-  }
-}
 export async function getActiveSubscription(userId: string) {
   try {
     const subscriptions = await databases.listDocuments(
@@ -1348,7 +1319,7 @@ export async function getActiveSubscription(userId: string) {
       [
         Query.equal("userId", userId),
         Query.equal("status", "active"),
-        Query.greaterThan("validUntil", new Date().toISOString()),
+        Query.greaterThan("endDate", new Date().toISOString()),
       ]
     );
 

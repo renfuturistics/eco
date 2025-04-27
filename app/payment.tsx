@@ -15,7 +15,9 @@ import AntDesign from "@expo/vector-icons/AntDesign";
 import { MtnGateway } from "../mobile-money/mtn/payment.service";
 import uuid from "react-native-uuid";
 import { savePendingPayment } from "../lib/localStorage";
+import { useGlobalContext } from "../context/GlobalProvider";
 const PaymentPage = () => {
+  const { setPaymentReference } = useGlobalContext();
   const [selectedProvider, setSelectedProvider] = useState<
     "Airtel" | "MTN" | null
   >(null);
@@ -46,6 +48,7 @@ const PaymentPage = () => {
 
       if (paymentResult.success) {
         savePendingPayment(referenceId);
+        setPaymentReference(referenceId);
         alert("Payment Initiated! Please approve it on your phone.");
         setIsLoading(false);
       } else {

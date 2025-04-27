@@ -7,12 +7,13 @@ import {
   FlatList,
   Image,
 } from "react-native";
-import { useGlobalContext } from "../context/GlobalProvider";
-import { createSubscription, subscribeToPlan } from "../lib/appwrite";
+import { useGlobalContext } from "../context/GlobalProvider"; // ⬅️ Import context
+
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { getSubscriptionPlans } from "../lib/appwrite"; // Import the function to get subscription plans from Appwrite
+import { getSubscriptionPlans, subscribeToPlan } from "../lib/appwrite";
+import { checkPendingPayments } from "../lib/localStorage";
 
 // Loading Indicator Component
 const LoadingIndicator = ({ message }: { message: string }) => (
@@ -50,7 +51,7 @@ const SubscriptionOptions = ({
   onSubscribe,
   plans,
 }: {
-  onSubscribe: (planId: string) => void;
+  onSubscribe: (plan: any) => void;
   plans: any[];
 }) => (
   <View className="bg-gray-900 p-6 rounded-lg shadow-lg w-full max-w-lg">
@@ -65,7 +66,9 @@ const SubscriptionOptions = ({
           <Text className="text-lg text-white font-semibold mb-2">
             {item.name}
           </Text>
-          <Text className=" text-white text-sm mb-4">{`${item.price} ${item.currency}`}</Text>
+          <Text className="text-white text-sm mb-4">
+            {`${item.price} ${item.currency}`}
+          </Text>
           {item.features.map((feature: string, index: number) => (
             <Text key={index} className="text-gray-300 text-sm mb-1">
               • {feature}
@@ -73,7 +76,7 @@ const SubscriptionOptions = ({
           ))}
           <TouchableOpacity
             className="mt-4 bg-secondary py-3 rounded-lg shadow-md"
-            onPress={() => onSubscribe(item.$id)}
+            onPress={() => onSubscribe(item)}
           >
             <Text className="text-white text-center font-bold">
               Subscribe to {item.name}
@@ -87,12 +90,19 @@ const SubscriptionOptions = ({
 
 // Main Subscription Page Component
 const SubscriptionPage = () => {
-  const { subscription, setSubscription, user } = useGlobalContext();
+  const {
+    subscription,
+    setSubscription,
+    user,
+    setSelectedPlan,
+    selectedPlan,
+    paymentReference,
+  } = useGlobalContext(); // ⬅️ added setSelectedPlan
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [subscriptionPlans, setSubscriptionPlans] = useState<any[]>([]);
 
-  // Fetch subscription plans from Appwrite when the page loads
+  // Fetch subscription plans
   useEffect(() => {
     const fetchPlans = async () => {
       setLoading(true);
@@ -106,25 +116,40 @@ const SubscriptionPage = () => {
         setLoading(false);
       }
     };
-
     fetchPlans();
   }, []);
 
-  const handleSubscribe = async (planId: string) => {
-    router.push("/payment");
+  // Check pending payments on mount
+  useEffect(() => {
+    const checkPaymentsAndActivate = async () => {
+      await checkPendingPayments(async () => {
+        console.log("Activating subscription now...");
+        try {
+          const subscriptionData = await subscribeToPlan(
+            user.$id,
+            selectedPlan,
+            paymentReference
+          );
+          setSubscription(subscriptionData);
+          console.log("Subscription activated successfully!");
+          setSelectedPlan(null);
+          router.replace("/home");
+        } catch (err) {
+          console.error("Failed to activate subscription:", err);
+        }
+      });
+    };
+    checkPaymentsAndActivate();
+  }, []);
+
+  const handleSubscribe = async (plan: any) => {
+    setSelectedPlan(plan.$id); // 🔥 save selected plan globally
+    router.push("/payment"); // navigate to payment page
   };
 
-  // Define the data for the flatlist (displaying subscription plans and other content)
   const data = [
-    {
-      id: "header",
-      type: "header",
-    },
-    {
-      id: "plans",
-      type: "plans",
-      plans: subscriptionPlans,
-    },
+    { id: "header", type: "header" },
+    { id: "plans", type: "plans", plans: subscriptionPlans },
   ];
 
   const renderItem = ({ item }: { item: any }) => {
@@ -132,7 +157,7 @@ const SubscriptionPage = () => {
       return (
         <View className="w-full mb-6">
           <LinearGradient
-            colors={["#1E3A8A", "#3B82F6"]} // Blue gradient from dark to light
+            colors={["#1E3A8A", "#3B82F6"]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             className="w-full py-8 px-4"
@@ -163,7 +188,7 @@ const SubscriptionPage = () => {
         ListHeaderComponent={
           <>
             <View className="mt-2 mb-6">
-              <Text className="text-white text-center text-3xl font-extrabold mt-5 ">
+              <Text className="text-white text-center text-3xl font-extrabold mt-5">
                 Affordable plan for any situation
               </Text>
               <Text className="text-white text-xl font-bold text-center mt-4 mb-6">
@@ -171,13 +196,13 @@ const SubscriptionPage = () => {
               </Text>
               <View className="flex-row justify-center gap-4 space-x-8 mt-4">
                 <Image
-                  source={require("../assets/images/airtel.png")} // Replace with your Airtel Money image path
+                  source={require("../assets/images/airtel.png")}
                   className="w-12 h-12 rounded-full bg-white p-2"
                   style={{ padding: 4 }}
                   resizeMode="contain"
                 />
                 <Image
-                  source={require("../assets/images/mtn.jpg")} // Replace with your MTN Money image path
+                  source={require("../assets/images/mtn.jpg")}
                   className="w-12 h-12 rounded-full"
                   resizeMode="contain"
                 />

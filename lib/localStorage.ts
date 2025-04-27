@@ -16,6 +16,7 @@ export async function savePendingPayment(referenceId: string) {
     console.error("Failed to save pending payment", error);
   }
 }
+
 export async function removePendingPayment(referenceId: string) {
   try {
     const pending = await AsyncStorage.getItem("pendingPayments");
@@ -34,7 +35,10 @@ export async function removePendingPayment(referenceId: string) {
     console.error("Failed to remove pending payment", error);
   }
 }
-export async function checkPendingPayments() {
+
+export async function checkPendingPayments(
+  onPaymentConfirmed?: () => Promise<void>
+) {
   try {
     const pending = await AsyncStorage.getItem("pendingPayments");
     if (!pending) return;
@@ -46,18 +50,36 @@ export async function checkPendingPayments() {
 
       if (result.success) {
         console.log(`Payment ${payment.referenceId} successful!`);
-        // remove this payment from storage
+
         await removePendingPayment(payment.referenceId);
+
+        // 🛎️ NEW: Activate subscription when payment is successful
+        if (onPaymentConfirmed) {
+          await onPaymentConfirmed();
+        }
       } else {
         const message = result.error.message;
         if (message === "Requested resource was not found.") {
           removePendingPayment(payment.referenceId);
         }
         console.log(`Payment ${payment.referenceId} still pending or failed.`);
-        // maybe retry later or notify user
       }
     }
   } catch (error) {
     console.error("Failed to check pending payments", error);
+  }
+}
+
+// 🆕 Utility: check if any pending payments exist
+export async function hasPendingPayments(): Promise<boolean> {
+  try {
+    const pending = await AsyncStorage.getItem("pendingPayments");
+    if (!pending) return false;
+
+    const pendingPayments = JSON.parse(pending);
+    return pendingPayments.length > 0;
+  } catch (error) {
+    console.error("Failed to check if there are pending payments", error);
+    return false;
   }
 }
