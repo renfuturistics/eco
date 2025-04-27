@@ -16,6 +16,7 @@ import { MtnGateway } from "../mobile-money/mtn/payment.service";
 import uuid from "react-native-uuid";
 import { savePendingPayment } from "../lib/localStorage";
 import { useGlobalContext } from "../context/GlobalProvider";
+
 const PaymentPage = () => {
   const { setPaymentReference } = useGlobalContext();
   const [selectedProvider, setSelectedProvider] = useState<
@@ -25,11 +26,39 @@ const PaymentPage = () => {
   const [isLoading, setIsLoading] = useState(false); // 👈 added loading state
   const router = useRouter();
 
+  // Function to validate phone number based on the selected provider
+  const validatePhoneNumber = () => {
+    // Check if the phone number length is exactly 10 digits
+    if (phoneNumber.length !== 10) {
+      return false;
+    }
+
+    // Validate based on selected provider
+    if (selectedProvider === "MTN") {
+      return phoneNumber.startsWith("096") || phoneNumber.startsWith("076");
+    } else if (selectedProvider === "Airtel") {
+      return phoneNumber.startsWith("097") || phoneNumber.startsWith("077");
+    }
+
+    return false;
+  };
+
   const handlePayment = async () => {
     if (!selectedProvider || !phoneNumber) {
       Alert.alert(
         "Incomplete Information",
         "Please select a plan, payment provider, and enter your phone number."
+      );
+      return;
+    }
+
+    // Validate phone number based on selected provider
+    if (!validatePhoneNumber()) {
+      Alert.alert(
+        "Invalid Phone Number",
+        selectedProvider === "MTN"
+          ? "For MTN, the number must start with 096 or 076 and be 10 digits long."
+          : "For Airtel, the number must start with 097 or 077 and be 10 digits long."
       );
       return;
     }
@@ -49,7 +78,7 @@ const PaymentPage = () => {
       if (paymentResult.success) {
         savePendingPayment(referenceId);
         setPaymentReference(referenceId);
-        alert("Payment Initiated! Please approve it on your phone.");
+        router.push("/payment-Confirmation-page");
         setIsLoading(false);
       } else {
         console.error("Payment Failed:", paymentResult.error);
@@ -57,9 +86,11 @@ const PaymentPage = () => {
         setIsLoading(false);
       }
     } else if (selectedProvider === "Airtel") {
+      // Handle Airtel payment processing (you can add the Airtel gateway here)
+      console.log("Airtel payment processing");
     }
-    // Simulate payment processing (e.g. sending request to payment gateway)
 
+    // Clear fields after processing
     setSelectedProvider(null);
     setPhoneNumber("");
   };
@@ -132,9 +163,10 @@ const PaymentPage = () => {
           <TouchableOpacity
             className="bg-secondary p-4 rounded-lg w-full"
             onPress={handlePayment}
+            disabled={isLoading}
           >
             <Text className="text-white text-lg text-center">
-              Proceed to Pay
+              {isLoading ? "Processing..." : "Proceed to Pay"}
             </Text>
           </TouchableOpacity>
         </View>

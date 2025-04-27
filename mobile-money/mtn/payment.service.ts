@@ -211,6 +211,7 @@ export class MtnGateway {
         error: error.response?.data || error.message,
         stack: error.stack,
         gateway: "Mtn Money",
+        data: undefined,
       };
     }
   }
