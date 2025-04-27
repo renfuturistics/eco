@@ -19,6 +19,7 @@ import { useGlobalContext } from "../../context/GlobalProvider";
 import { getCourseWithLessons, createUserCourse } from "../../lib/appwrite";
 import { useAddTrack, useTracks } from "../../store/library";
 import { useQueue } from "../../store/queue";
+import { checkPendingPayments } from "../../lib/localStorage";
 
 const CourseDetails = () => {
   const { id } = useLocalSearchParams();
@@ -37,6 +38,7 @@ const CourseDetails = () => {
   const queueOffset = useRef(0);
 
   useEffect(() => {
+    checkPendingPayments();
     const fetchCourses = async () => {
       try {
         setLoading(true);

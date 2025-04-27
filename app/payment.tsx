@@ -6,22 +6,25 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
+  ActivityIndicator,
   Alert,
   Platform,
 } from "react-native";
 import { Stack, useRouter } from "expo-router";
 import AntDesign from "@expo/vector-icons/AntDesign";
-
+import { MtnGateway } from "../mobile-money/mtn/payment.service";
+import uuid from "react-native-uuid";
+import { savePendingPayment } from "../lib/localStorage";
 const PaymentPage = () => {
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<
     "Airtel" | "MTN" | null
   >(null);
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [isLoading, setIsLoading] = useState(false); // 👈 added loading state
   const router = useRouter();
 
-  const handlePayment = () => {
-    if (!selectedPlan || !selectedProvider || !phoneNumber) {
+  const handlePayment = async () => {
+    if (!selectedProvider || !phoneNumber) {
       Alert.alert(
         "Incomplete Information",
         "Please select a plan, payment provider, and enter your phone number."
@@ -29,12 +32,31 @@ const PaymentPage = () => {
       return;
     }
 
-    Alert.alert(
-      "Payment Initiated",
-      `Your payment for ${selectedPlan} via ${selectedProvider} Money is being processed.`
-    );
+    setIsLoading(true); // 👈 show loading screen
 
-    setSelectedPlan(null);
+    if (selectedProvider === "MTN") {
+      const gateway = MtnGateway.getInstance();
+      const referenceId = uuid.v4() as string;
+      const amount = 100; // 100 ZMW
+      const paymentResult = await gateway.processPayment(
+        referenceId,
+        phoneNumber,
+        amount
+      );
+
+      if (paymentResult.success) {
+        savePendingPayment(referenceId);
+        alert("Payment Initiated! Please approve it on your phone.");
+        setIsLoading(false);
+      } else {
+        console.error("Payment Failed:", paymentResult.error);
+        alert("Payment Failed: " + paymentResult.error);
+        setIsLoading(false);
+      }
+    } else if (selectedProvider === "Airtel") {
+    }
+    // Simulate payment processing (e.g. sending request to payment gateway)
+
     setSelectedProvider(null);
     setPhoneNumber("");
   };

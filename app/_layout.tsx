@@ -9,6 +9,8 @@ import GlobalProvider from "../context/GlobalProvider";
 import { playbackService } from "../constants/playbackService";
 import { useLogTrackPlayerState } from "./hooks/useLogTrackPlayerState";
 import { useSetupTrackPlayer } from "./hooks/useSetupTrackPlayer";
+import { MtnGateway } from "../mobile-money/mtn/payment.service";
+import { checkPendingPayments } from "../lib/localStorage";
 
 // ✅ Register the playback service safely
 TrackPlayer.registerPlaybackService(() => playbackService);
@@ -32,6 +34,19 @@ const RootLayout = () => {
 
   useSetupTrackPlayer({ onLoad: handleTrackPlayerLoaded });
   useLogTrackPlayerState();
+  useEffect(() => {
+    const setupGateway = async () => {
+      const gateway = MtnGateway.getInstance();
+      // setupSandboxCredentials is already called in constructor
+      console.log("MTN Gateway initialized");
+    };
+
+    setupGateway();
+  }, []);
+  useEffect(() => {
+    // when app starts
+    checkPendingPayments();
+  }, []);
 
   // 🧠 Show splash until fonts are loaded or error occurs
   useEffect(() => {
