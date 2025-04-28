@@ -12,7 +12,7 @@ import {
 import FastImage from "react-native-fast-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import TrackPlayer, { useActiveTrack } from "react-native-track-player";
-import { unknownTrackImageUri } from "../../constants/images/images";
+
 import { defaultStyles, utilsStyles } from "../../styles";
 import { colors, screenPadding, fontSize } from "../../constants/tokens";
 
@@ -25,6 +25,7 @@ import { useLocalSearchParams, useNavigation } from "expo-router";
 import { useEffect, useState } from "react";
 import { getLessonAndCourseByLessonId } from "../../lib/appwrite";
 import PageHeader from "../../components/PageHeader";
+import { unknownTrackImageUri } from "../../constants/images/images";
 
 const AudioPlayer = () => {
   const activeTrack = useActiveTrack();

@@ -12,7 +12,10 @@ import { useGlobalContext } from "../context/GlobalProvider";
 import { router, Stack } from "expo-router";
 import { MtnGateway } from "../mobile-money/mtn/payment.service";
 import { subscribeToPlan } from "../lib/appwrite";
-import { checkPendingPayments } from "../lib/localStorage";
+import {
+  checkPendingPayments,
+  removePendingPayment,
+} from "../lib/localStorage";
 
 // Loading Indicator Component
 const LoadingIndicator = () => (
@@ -97,6 +100,7 @@ const PaymentConfirmationPage = () => {
         setSubscription(subscriptionData);
         console.log("Subscription activated successfully!");
         setSelectedPlan(null);
+        await removePendingPayment(paymentReference);
         router.replace("/home");
       } catch (err) {
         console.error("Failed to activate subscription:", err);
