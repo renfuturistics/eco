@@ -25,7 +25,6 @@ import { useLocalSearchParams, useNavigation } from "expo-router";
 import { useEffect, useState } from "react";
 import { getLessonAndCourseByLessonId } from "../../lib/appwrite";
 import PageHeader from "../../components/PageHeader";
-import { unknownTrackImageUri } from "../../constants/images/images";
 
 const AudioPlayer = () => {
   const activeTrack = useActiveTrack();
@@ -105,17 +104,22 @@ const AudioPlayer = () => {
       <View style={styles.overlayContainer}>
         <View style={{ flex: 1, marginTop: top + 50, marginBottom: bottom }}>
           <View style={styles.artworkImageContainer}>
-            <Image
-              source={{
-                uri:
-                  typeof activeTrack.artwork === "string" &&
-                  activeTrack.artwork !== ""
-                    ? activeTrack.artwork
-                    : unknownTrackImageUri,
-              }}
-              resizeMode="cover"
-              style={styles.artworkImage}
-            />
+            {typeof activeTrack.artwork === "string" &&
+            activeTrack.artwork !== "" ? (
+              <Image
+                source={{
+                  uri: activeTrack.artwork,
+                }}
+                resizeMode="cover"
+                style={styles.artworkImage}
+              />
+            ) : (
+              <Image
+                source={require("../../assets/images/unknown_track.png")}
+                resizeMode="cover"
+                style={styles.artworkImage}
+              />
+            )}
           </View>
 
           <View style={{ flex: 1 }}>

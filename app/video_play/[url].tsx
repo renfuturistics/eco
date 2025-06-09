@@ -136,7 +136,7 @@ const VideoPlay = () => {
             className="w-full h-60 rounded-xl mt-3"
             ref={videoRef}
             source={{
-              uri: "https://cloud.appwrite.io/v1/storage/buckets/671992c80019376d25f1/files/6751a37b0020c8e653b8/view?project=67198dbd00277f568222&project=67198dbd00277f568222&mode=admin",
+              uri: url,
             }}
             style={{
               width: Dimensions.get("window").width,
